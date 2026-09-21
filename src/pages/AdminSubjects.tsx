@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
-const mapelListDefault = [
+interface Subject {
+  id?: string | number;
+  ID?: number;
+  name?: string;
+  Name?: string;
+  code?: string;
+  Code?: string;
+  description?: string;
+  Description?: string;
+  deskripsi?: string;
+}
+
+const mapelListDefault: string[] = [
   "Matematika",
   "Bahasa Indonesia",
   "Bahasa Inggris",
@@ -25,51 +37,64 @@ const mapelListDefault = [
 ];
 
 export default function AdminSubjects() {
-  const [subjects, setSubjects] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState({ name: '', code: '', description: '' });
 
   const fetchSubjects = async () => {
     try {
+      const savedSubjects = localStorage.getItem('school_subjects_list');
+      if (savedSubjects) {
+        setSubjects(JSON.parse(savedSubjects));
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:8080/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const resData = response.data;
-      let dbData = [];
+      let dbData: Subject[] = [];
       if (Array.isArray(resData)) {
         dbData = resData;
       } else if (resData && Array.isArray(resData.data)) {
         dbData = resData.data;
       }
 
-      const formattedDefault = mapelListDefault.map((m, idx) => ({
+      const formattedDefault: Subject[] = mapelListDefault.map((m, idx) => ({
         id: `default-${idx + 1}`,
         name: m,
         code: `MP-${101 + idx}`,
         description: 'Mata pelajaran wajib dan kejuruan sekolah'
       }));
 
-      const combined = [...dbData, ...formattedDefault.filter(def => !dbData.some(db => (db.Name || db.name)?.toLowerCase() === def.name.toLowerCase()))];
+      const combined = [...dbData, ...formattedDefault.filter(def => !dbData.some(db => (db.Name || db.name)?.toLowerCase() === def.name?.toLowerCase()))];
       
       setSubjects(combined);
+      localStorage.setItem('school_subjects_list', JSON.stringify(combined));
       setLoading(false);
     } catch (err) {
       console.error('Gagal mengambil data dari API, menggunakan list default:', err);
-      const defaultData = mapelListDefault.map((m, idx) => ({
-        id: `default-${idx + 1}`,
-        name: m,
-        code: `MP-${101 + idx}`,
-        description: 'Mata pelajaran wajib dan kejuruan sekolah'
-      }));
-      setSubjects(defaultData);
+      const savedSubjects = localStorage.getItem('school_subjects_list');
+      if (savedSubjects) {
+        setSubjects(JSON.parse(savedSubjects));
+      } else {
+        const defaultData: Subject[] = mapelListDefault.map((m, idx) => ({
+          id: `default-${idx + 1}`,
+          name: m,
+          code: `MP-${101 + idx}`,
+          description: 'Mata pelajaran wajib dan kejuruan sekolah'
+        }));
+        setSubjects(defaultData);
+        localStorage.setItem('school_subjects_list', JSON.stringify(defaultData));
+      }
       setLoading(false);
     }
   };
@@ -84,9 +109,11 @@ export default function AdminSubjects() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (subject) => {
+  const handleOpenEdit = (subject: Subject) => {
     setIsEditMode(true);
-    setCurrentId(subject.ID || subject.id);
+    const targetId = subject.ID !== undefined ? subject.ID : subject.id!;
+    setCurrentId(targetId);
+    
     setFormData({
       name: subject.Name || subject.name || '',
       code: subject.Code || subject.code || '',
@@ -95,7 +122,7 @@ export default function AdminSubjects() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -111,50 +138,59 @@ export default function AdminSubjects() {
       };
 
       if (isEditMode) {
-        if (typeof currentId === 'string' && currentId.startsWith('default-')) {
-          setSubjects(subjects.map(s => (s.id === currentId ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s)));
-        } else {
-          await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
-          fetchSubjects();
+        const updatedSubjects = subjects.map(s => {
+          const sId = s.ID !== undefined ? s.ID : s.id;
+          if (sId === currentId) {
+            return { ...s, name: formData.name, Name: formData.name, code: formData.code, Code: formData.code, description: formData.description, Description: formData.description };
+          }
+          return s;
+        });
+        setSubjects(updatedSubjects);
+        localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
+
+        if (typeof currentId === 'number' || (typeof currentId === 'string' && !currentId.startsWith('default-'))) {
+          await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers }).catch(() => {});
         }
       } else {
-        await axios.post('http://localhost:8080/api/subjects', payload, { headers });
-        fetchSubjects();
+        const newSub: Subject = {
+          id: `custom-${Date.now()}`,
+          ID: Date.now(),
+          name: formData.name,
+          Name: formData.name,
+          code: formData.code,
+          Code: formData.code,
+          description: formData.description,
+          Description: formData.description
+        };
+        const updatedSubjects = [newSub, ...subjects];
+        setSubjects(updatedSubjects);
+        localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
+
+        await axios.post('http://localhost:8080/api/subjects', payload, { headers }).catch(() => {});
       }
 
       setIsModalOpen(false);
     } catch (err) {
       console.error('Gagal menyimpan data mata pelajaran:', err);
-      if (!isEditMode) {
-        const newSub = {
-          id: Date.now(),
-          name: formData.name,
-          code: formData.code,
-          description: formData.description || 'Mata pelajaran tambahan sekolah'
-        };
-        setSubjects([newSub, ...subjects]);
-      } else {
-        setSubjects(subjects.map(s => (s.id === currentId || s.ID === currentId) ? { ...s, name: formData.name, code: formData.code, description: formData.description } : s));
-      }
       setIsModalOpen(false);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string | number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      if (typeof id === 'string' && id.startsWith('default-')) {
-        setSubjects(subjects.filter(s => s.id !== id));
-        return;
+      const updatedSubjects = subjects.filter(s => (s.ID !== undefined ? s.ID : s.id) !== id);
+      setSubjects(updatedSubjects);
+      localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
+
+      if (typeof id === 'number' || (typeof id === 'string' && !id.startsWith('default-'))) {
+        await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
       }
-      await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchSubjects();
     } catch (err) {
-      console.error('Gagal menghapus dari server, menghapus secara lokal:', err);
-      setSubjects(subjects.filter(s => (s.ID || s.id) !== id));
+      console.error('Gagal menghapus dari server:', err);
     }
   };
 
@@ -169,7 +205,7 @@ export default function AdminSubjects() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Daftar Mata Pelajaran</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan daftar mata pelajaran sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola kurikulum dan daftar mata pelajaran sekolah (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -210,21 +246,21 @@ export default function AdminSubjects() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Memuat data mata pelajaran...</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Memuat data mata pelajaran...</td>
                 </tr>
               ) : filteredSubjects.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Tidak ada data mata pelajaran ditemukan.</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Tidak ada data mata pelajaran ditemukan.</td>
                 </tr>
               ) : (
                 filteredSubjects.map((sub, index) => {
                   const subName = sub.Name || sub.name || '-';
                   const subCode = sub.Code || sub.code || '-';
-                  // Menangani berbagai format penulisan field deskripsi dari backend
-                  const subDesc = sub.Description || sub.description || sub.deskripsi || 'Mata pelajaran sekolah';
+                  const subDesc = sub.Description || sub.description || sub.deskripsi || '-';
+                  const rowKey = sub.ID !== undefined ? sub.ID : (sub.id || index);
 
                   return (
-                    <tr key={sub.ID || sub.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{subName}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{subCode}</td>
@@ -239,7 +275,7 @@ export default function AdminSubjects() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(sub.ID || sub.id)}
+                            onClick={() => handleDelete(sub.ID !== undefined ? sub.ID : sub.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -256,7 +292,6 @@ export default function AdminSubjects() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Mapel */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -297,7 +332,7 @@ export default function AdminSubjects() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Deskripsi</label>
                 <textarea
-                  rows="3"
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Keterangan singkat mata pelajaran..."

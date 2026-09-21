@@ -2,7 +2,31 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff } from 'lucide-react';
 
-const mapelList = [
+interface TeacherUser {
+  Name?: string;
+  Email?: string;
+}
+
+interface Teacher {
+  id?: number;
+  ID?: number;
+  Name?: string;
+  name?: string;
+  FullName?: string;
+  Email?: string;
+  email?: string;
+  NIP?: string;
+  nip?: string;
+  Subject?: string;
+  subject?: string;
+  Gender?: string;
+  gender?: string;
+  JenisKelamin?: string;
+  User?: TeacherUser;
+  user?: TeacherUser;
+}
+
+const mapelList: string[] = [
   "Matematika",
   "Bahasa Indonesia",
   "Bahasa Inggris",
@@ -25,16 +49,22 @@ const mapelList = [
 ];
 
 export default function AdminTeachers() {
-  const [teachers, setTeachers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  // State untuk Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
-  const [formData, setFormData] = useState({ Name: '', Email: '', Password: '', NIP: '', Subject: '', Gender: 'Laki-laki' });
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    Name: '',
+    Email: '',
+    Password: '',
+    NIP: '',
+    Subject: '',
+    Gender: 'Laki-laki'
+  });
 
   const fetchTeachers = async () => {
     try {
@@ -70,23 +100,23 @@ export default function AdminTeachers() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (teacher) => {
+  const handleOpenEdit = (teacher: Teacher) => {
     setIsEditMode(true);
     setShowPassword(false);
-    setCurrentId(teacher.ID || teacher.id);
+    setCurrentId(teacher.ID !== undefined ? teacher.ID : teacher.id!);
     
     setFormData({ 
-      Name: teacher.Name || teacher.name || teacher.FullName || teacher.User?.Name || teacher.user?.Name || teacher.user?.name || '', 
-      Email: teacher.Email || teacher.email || teacher.User?.Email || teacher.user?.Email || teacher.user?.email || '',
+      Name: teacher.Name || teacher.name || teacher.User?.Name || '', 
+      Email: teacher.Email || teacher.email || teacher.User?.Email || '',
       Password: '',
       NIP: teacher.NIP || teacher.nip || '',
-      Subject: teacher.Subject || teacher.subject || teacher.BidangStudi || teacher.bidang_studi || '', 
-      Gender: teacher.Gender || teacher.gender || teacher.JenisKelamin || teacher.jenis_kelamin || 'Laki-laki'
+      Subject: teacher.Subject || teacher.subject || '', 
+      Gender: teacher.Gender || teacher.gender || teacher.JenisKelamin || 'Laki-laki'
     });
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -115,14 +145,14 @@ export default function AdminTeachers() {
 
       setIsModalOpen(false);
       fetchTeachers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Gagal menyimpan data guru:', err);
       const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan data.';
       alert(errMsg);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data guru ini?')) return;
     try {
       const token = localStorage.getItem('token');
@@ -137,7 +167,7 @@ export default function AdminTeachers() {
   };
 
   const filteredTeachers = Array.isArray(teachers) ? teachers.filter(t => {
-    const name = t.Name || t.name || t.FullName || t.User?.Name || t.user?.Name || t.user?.name || '';
+    const name = t.Name || t.name || t.User?.Name || '';
     const nip = t.NIP || t.nip || '';
     return name.toLowerCase().includes(search.toLowerCase()) || nip.toLowerCase().includes(search.toLowerCase());
   }) : [];
@@ -147,7 +177,7 @@ export default function AdminTeachers() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Manajemen Guru</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola data seluruh guru pengajar di sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola data seluruh guru pengajar di sekolah (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -190,31 +220,28 @@ export default function AdminTeachers() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-gray-400">Memuat data guru...</td>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">Memuat data guru...</td>
                 </tr>
               ) : filteredTeachers.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-gray-400">Tidak ada data guru ditemukan.</td>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data guru ditemukan.</td>
                 </tr>
               ) : (
                 filteredTeachers.map((teacher, index) => {
-                  const teacherName = teacher.Name || teacher.name || teacher.User?.Name || teacher.user?.Name || teacher.user?.name || 'Tanpa Nama';
-                  const teacherEmail = teacher.Email || teacher.email || teacher.User?.Email || teacher.user?.email || teacher.user?.Email || '-';
+                  const teacherName = teacher.Name || teacher.name || teacher.User?.Name || 'Tanpa Nama';
+                  const teacherEmail = teacher.Email || teacher.email || teacher.User?.Email || '-';
                   const teacherNip = teacher.NIP || teacher.nip || '-';
-                  const teacherSubject = teacher.Subject || teacher.subject || teacher.BidangStudi || teacher.bidang_studi || '-';
-                  const teacherGender = teacher.Gender || teacher.gender || teacher.JenisKelamin || teacher.jenis_kelamin || '-';
+                  const teacherSubject = teacher.Subject || teacher.subject || '-';
+                  const teacherGender = teacher.Gender || teacher.gender || teacher.JenisKelamin || '-';
+                  const rowKey = teacher.ID !== undefined ? teacher.ID : (teacher.id || index);
 
                   return (
-                    <tr key={teacher.ID || teacher.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
-                      <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">
-                        {teacherName}
-                      </td>
+                      <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{teacherName}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{teacherEmail}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{teacherNip}</td>
-                      <td className="py-3.5 px-6 font-medium text-[#1C4D8D] whitespace-nowrap">
-                        {teacherSubject}
-                      </td>
+                      <td className="py-3.5 px-6 font-medium text-[#1C4D8D] whitespace-nowrap">{teacherSubject}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{teacherGender}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
@@ -226,7 +253,7 @@ export default function AdminTeachers() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(teacher.ID || teacher.id)}
+                            onClick={() => handleDelete(teacher.ID !== undefined ? teacher.ID : teacher.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -250,10 +277,7 @@ export default function AdminTeachers() {
               <h4 className="font-bold text-gray-800 text-base">
                 {isEditMode ? 'Edit Data Guru' : 'Tambah Guru Baru'}
               </h4>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
                 <X size={18} />
               </button>
             </div>

@@ -2,20 +2,32 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar as CalendarIcon, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
-const defaultEvents = [
+interface CalendarEvent {
+  id?: string | number;
+  ID?: number;
+  title?: string;
+  Title?: string;
+  date?: string;
+  Date?: string;
+  description?: string;
+  Description?: string;
+  category?: string;
+  Category?: string;
+}
+
+const defaultEvents: CalendarEvent[] = [
   { id: 1, title: 'Ujian Tengah Semester (UTS)', date: '2026-10-10', description: 'Pelaksanaan UTS Semester Ganjil', category: 'Akademik' },
   { id: 2, title: 'Libur Nasional Hari Pahlawan', date: '2026-11-10', description: 'Libur kegiatan belajar mengajar', category: 'Libur' }
 ];
 
 export default function AdminCalendar() {
-  const [events, setEvents] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     date: '',
@@ -38,7 +50,7 @@ export default function AdminCalendar() {
       });
       
       const resData = response.data;
-      let dbData = [];
+      let dbData: CalendarEvent[] = [];
       if (Array.isArray(resData)) {
         dbData = resData;
       } else if (resData && Array.isArray(resData.data)) {
@@ -72,21 +84,22 @@ export default function AdminCalendar() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (ev) => {
+  const handleOpenEdit = (ev: CalendarEvent) => {
     setIsEditMode(true);
-    const targetId = ev.ID || ev.id;
+    const targetId = ev.ID !== undefined ? ev.ID : ev.id!;
     setCurrentId(targetId);
     
+    const rawDate = ev.Date || ev.date || '';
     setFormData({
       title: ev.Title || ev.title || '',
-      date: ev.Date ? ev.Date.split('T')[0] : (ev.date ? ev.date.split('T')[0] : ''),
+      date: rawDate ? rawDate.split('T')[0] : '',
       description: ev.Description || ev.description || '',
       category: ev.Category || ev.category || 'Akademik'
     });
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -105,7 +118,7 @@ export default function AdminCalendar() {
 
       if (isEditMode) {
         const updatedEvents = events.map(ev => {
-          const evId = ev.ID || ev.id;
+          const evId = ev.ID !== undefined ? ev.ID : ev.id;
           if (evId === currentId) {
             return { ...ev, title: formData.title, Title: formData.title, date: formData.date, Date: formData.date, description: formData.description, Description: formData.description, category: formData.category, Category: formData.category };
           }
@@ -118,7 +131,7 @@ export default function AdminCalendar() {
           await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers }).catch(() => {});
         }
       } else {
-        const newEvent = {
+        const newEvent: CalendarEvent = {
           id: `custom-${Date.now()}`,
           ID: Date.now(),
           title: formData.title,
@@ -144,11 +157,11 @@ export default function AdminCalendar() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string | number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus agenda ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      const updatedEvents = events.filter(ev => (ev.ID || ev.id) !== id);
+      const updatedEvents = events.filter(ev => (ev.ID !== undefined ? ev.ID : ev.id) !== id);
       setEvents(updatedEvents);
       localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
 
@@ -173,7 +186,7 @@ export default function AdminCalendar() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Kalender & Agenda</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola jadwal kegiatan, ujian, dan hari libur sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola jadwal kegiatan, ujian, dan hari libur sekolah (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -215,11 +228,11 @@ export default function AdminCalendar() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-400">Memuat data kalender...</td>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">Memuat data kalender...</td>
                 </tr>
               ) : filteredEvents.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-400">Tidak ada agenda kegiatan ditemukan.</td>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">Tidak ada agenda kegiatan ditemukan.</td>
                 </tr>
               ) : (
                 filteredEvents.map((ev, index) => {
@@ -228,9 +241,10 @@ export default function AdminCalendar() {
                   const evDate = rawDate ? rawDate.split('T')[0] : '-';
                   const evCategory = ev.Category || ev.category || 'Umum';
                   const evDesc = ev.Description || ev.description || '-';
+                  const rowKey = ev.ID !== undefined ? ev.ID : (ev.id || index);
 
                   return (
-                    <tr key={ev.ID || ev.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{evTitle}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{evDate}</td>
@@ -253,7 +267,7 @@ export default function AdminCalendar() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(ev.ID || ev.id)}
+                            onClick={() => handleDelete(ev.ID !== undefined ? ev.ID : ev.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -270,7 +284,6 @@ export default function AdminCalendar() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Agenda */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -325,7 +338,7 @@ export default function AdminCalendar() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Deskripsi</label>
                 <textarea
-                  rows="3"
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Keterangan lengkap kegiatan..."

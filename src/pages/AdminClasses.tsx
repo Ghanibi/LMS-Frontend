@@ -2,15 +2,31 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Home, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
-export default function AdminClasses() {
-  const [classes, setClasses] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+interface SchoolClass {
+  id?: number;
+  ID?: number;
+  name?: string;
+  Name?: string;
+  education_level_id?: number;
+  EducationLevelID?: number;
+  grade?: number;
+  Grade?: number;
+  major?: string;
+  Major?: string;
+  class_number?: number;
+  ClassNumber?: number;
+  is_plus?: boolean;
+  IsPlus?: boolean;
+}
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+export default function AdminClasses() {
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     education_level_id: 1,
@@ -60,9 +76,9 @@ export default function AdminClasses() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (cls) => {
+  const handleOpenEdit = (cls: SchoolClass) => {
     setIsEditMode(true);
-    setCurrentId(cls.ID || cls.id);
+    setCurrentId(cls.ID !== undefined ? cls.ID : cls.id!);
     setFormData({
       name: cls.Name || cls.name || '',
       education_level_id: cls.EducationLevelID || cls.education_level_id || 1,
@@ -74,22 +90,26 @@ export default function AdminClasses() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Generate otomatis nama kelas jika kosong berdasarkan inputan
       const generatedName = formData.name || `${formData.grade} ${formData.major} ${formData.is_plus ? 'PLUS' : formData.class_number}`;
 
       const payload = {
         name: generatedName,
+        Name: generatedName,
         education_level_id: Number(formData.education_level_id),
         grade: Number(formData.grade),
+        Grade: Number(formData.grade),
         major: formData.major,
+        Major: formData.major,
         class_number: Number(formData.class_number),
-        is_plus: Boolean(formData.is_plus)
+        ClassNumber: Number(formData.class_number),
+        is_plus: Boolean(formData.is_plus),
+        IsPlus: Boolean(formData.is_plus)
       };
 
       if (isEditMode) {
@@ -100,14 +120,14 @@ export default function AdminClasses() {
 
       setIsModalOpen(false);
       fetchClasses();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Gagal menyimpan data kelas:', err);
       const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan kelas.';
       alert(errMsg);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus kelas ini?')) return;
     try {
       const token = localStorage.getItem('token');
@@ -132,7 +152,7 @@ export default function AdminClasses() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Manajemen Kelas</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola tingkat, jurusan, dan kelompok kelas sekolah.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola tingkat, jurusan, dan kelompok kelas sekolah (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -174,11 +194,11 @@ export default function AdminClasses() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-400">Memuat data kelas...</td>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">Memuat data kelas...</td>
                 </tr>
               ) : filteredClasses.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-400">Tidak ada data kelas ditemukan.</td>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">Tidak ada data kelas ditemukan.</td>
                 </tr>
               ) : (
                 filteredClasses.map((cls, index) => {
@@ -186,9 +206,10 @@ export default function AdminClasses() {
                   const classGrade = cls.Grade || cls.grade || '-';
                   const classMajor = cls.Major || cls.major || '-';
                   const isPlus = cls.IsPlus !== undefined ? cls.IsPlus : cls.is_plus;
+                  const rowKey = cls.ID !== undefined ? cls.ID : (cls.id || index);
 
                   return (
-                    <tr key={cls.ID || cls.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{className}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">Kelas {classGrade}</td>
@@ -210,7 +231,7 @@ export default function AdminClasses() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(cls.ID || cls.id)}
+                            onClick={() => handleDelete(cls.ID !== undefined ? cls.ID : cls.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -227,7 +248,6 @@ export default function AdminClasses() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Kelas */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -284,7 +304,7 @@ export default function AdminClasses() {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Nomor / Urutan Kelas</label>
                   <input
                     type="number"
-                    min="1"
+                    min={1}
                     value={formData.class_number}
                     onChange={(e) => setFormData({ ...formData, class_number: Number(e.target.value) })}
                     className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"

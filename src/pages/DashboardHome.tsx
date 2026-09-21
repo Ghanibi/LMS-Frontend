@@ -1,8 +1,36 @@
 import React from 'react';
 import { GraduationCap, Users, BookOpen, FileText, Award, Bell } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
+
+interface StatItem {
+  title: string;
+  value: string;
+  icon: LucideIcon;
+  color: string;
+  bg: string;
+}
+
+interface CalendarItem {
+  date: string;
+  title: string;
+  desc: string;
+}
+
+interface ActivityItem {
+  name: string;
+  act: string;
+  time: string;
+  img: string;
+}
+
+interface NotificationItem {
+  title: string;
+  time: string;
+  bg: string;
+}
 
 export default function DashboardHome() {
-  const stats = [
+  const stats: StatItem[] = [
     { title: 'Total Guru', value: '86', icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { title: 'Total Siswa', value: '2.000', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
     { title: 'Total Mata Pelajaran', value: '19', icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -10,12 +38,34 @@ export default function DashboardHome() {
     { title: 'Total Ujian', value: '48', icon: Award, color: 'text-rose-500', bg: 'bg-rose-50' },
   ];
 
+  const calendarEvents: CalendarItem[] = [
+    { date: '12 DES', title: 'Ujian Akhir Semester', desc: '08:00 - 12:00 WIB' },
+    { date: '18 DES', title: 'Rapat Wali Kelas', desc: '13:00 WIB - Aula' },
+    { date: '22 DES', title: 'Pembagian Rapor', desc: '08:00 WIB - Kelas' },
+    { date: '25 DES', title: 'Libur Semester Ganjil', desc: 'Sepanjang hari' },
+  ];
+
+  const activities: ActivityItem[] = [
+    { name: 'Rahmania', act: 'Mengunggah materi Fisika Bab 5', time: '5 menit lalu', img: 'RA' },
+    { name: 'Ahmad Fauzi', act: 'Mengumpulkan tugas Matematika', time: '22 menit lalu', img: 'AF' },
+    { name: 'Dewi Lestari', act: 'Membuat jadwal ujian Biologi', time: '1 jam lalu', img: 'DL' },
+    { name: 'Sri Wulandari', act: 'Mengunduh materi Sejarah', time: '2 jam lalu', img: 'SW' },
+    { name: 'Bambang Wijaya', act: 'Menambahkan pengumuman baru', time: '3 jam lalu', img: 'BW' },
+  ];
+
+  const notifications: NotificationItem[] = [
+    { title: '15 tugas baru menunggu ditinjau', time: 'Baru saja', bg: 'bg-blue-50 text-blue-600' },
+    { title: '3 guru belum mengisi nilai UAS', time: '30 menit lalu', bg: 'bg-red-50 text-red-500' },
+    { title: '12 siswa baru terdaftar hari ini', time: '1 jam lalu', bg: 'bg-emerald-50 text-emerald-600' },
+    { title: 'Jadwal UAS akan dimulai besok', time: '2 jam lalu', bg: 'bg-amber-50 text-amber-500' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div>
         <h3 className="text-xl font-bold text-gray-800">Dashboard</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Selamat datang kembali, Fulani. Berikut ringkasan aktivitas sekolah hari ini.</p>
+        <p className="text-xs text-gray-500 mt-0.5">Selamat datang kembali, Fulani. Berikut ringkasan aktivitas sekolah hari ini (TypeScript).</p>
       </div>
 
       {/* Stats Cards (5 Kolom) */}
@@ -69,12 +119,7 @@ export default function DashboardHome() {
           <h4 className="font-bold text-gray-800 text-sm">Kalender Akademik</h4>
           
           <div className="space-y-3">
-            {[
-              { date: '12 DES', title: 'Ujian Akhir Semester', desc: '08:00 - 12:00 WIB' },
-              { date: '18 DES', title: 'Rapat Wali Kelas', desc: '13:00 WIB - Aula' },
-              { date: '22 DES', title: 'Pembagian Rapor', desc: '08:00 WIB - Kelas' },
-              { date: '25 DES', title: 'Libur Semester Ganjil', desc: 'Sepanjang hari' },
-            ].map((item, i) => (
+            {calendarEvents.map((item, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/70 border border-gray-100">
                 <div className="bg-white px-2.5 py-1.5 rounded-lg text-center shadow-xs">
                   <span className="block text-[10px] font-bold text-amber-500">{item.date.split(' ')[0]}</span>
@@ -106,13 +151,7 @@ export default function DashboardHome() {
               <span className="text-right">Waktu</span>
             </div>
 
-            {[
-              { name: 'Rahmania', act: 'Mengunggah materi Fisika Bab 5', time: '5 menit lalu', img: 'RA' },
-              { name: 'Ahmad Fauzi', act: 'Mengumpulkan tugas Matematika', time: '22 menit lalu', img: 'AF' },
-              { name: 'Dewi Lestari', act: 'Membuat jadwal ujian Biologi', time: '1 jam lalu', img: 'DL' },
-              { name: 'Sri Wulandari', act: 'Mengunduh materi Sejarah', time: '2 jam lalu', img: 'SW' },
-              { name: 'Bambang Wijaya', act: 'Menambahkan pengumuman baru', time: '3 jam lalu', img: 'BW' },
-            ].map((item, i) => (
+            {activities.map((item, i) => (
               <div key={i} className="grid grid-cols-3 items-center py-2 border-b border-gray-50 last:border-none text-xs">
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-full bg-[#1C4D8D]/10 text-[#1C4D8D] font-bold flex items-center justify-center text-[10px]">
@@ -135,12 +174,7 @@ export default function DashboardHome() {
           </div>
 
           <div className="space-y-3">
-            {[
-              { title: '15 tugas baru menunggu ditinjau', time: 'Baru saja', bg: 'bg-blue-50 text-blue-600' },
-              { title: '3 guru belum mengisi nilai UAS', time: '30 menit lalu', bg: 'bg-red-50 text-red-500' },
-              { title: '12 siswa baru terdaftar hari ini', time: '1 jam lalu', bg: 'bg-emerald-50 text-emerald-600' },
-              { title: 'Jadwal UAS akan dimulai besok', time: '2 jam lalu', bg: 'bg-amber-50 text-amber-500' },
-            ].map((item, i) => (
+            {notifications.map((item, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/70 border border-gray-100">
                 <div className={`p-2 rounded-lg ${item.bg}`}>
                   <Bell size={14} />

@@ -2,15 +2,25 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bell, Plus, Search, Trash2, Edit, X } from 'lucide-react';
 
-export default function AdminAnnouncements() {
-  const [announcements, setAnnouncements] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+interface Announcement {
+  id?: number;
+  ID?: number;
+  title?: string;
+  Title?: string;
+  content?: string;
+  Content?: string;
+  target_role?: string;
+  TargetRole?: string;
+}
 
-  // State Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
+export default function AdminAnnouncements() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -20,7 +30,6 @@ export default function AdminAnnouncements() {
   const fetchAnnouncements = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Sesuaikan endpoint backend Anda jika menggunakan /api/announcements
       const response = await axios.get('http://localhost:8080/api/announcements', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -36,9 +45,8 @@ export default function AdminAnnouncements() {
       setLoading(false);
     } catch (err) {
       console.error('Gagal mengambil data pengumuman:', err);
-      // Fallback data contoh jika endpoint belum siap di backend
       setAnnouncements([
-        { id: 1, title: 'Pembagian Rapor Semester', content: 'Pembagian rapor akan dilaksanakan pada akhir bulan.', target_role: 'Semua', created_at: '2026-10-01' }
+        { id: 1, title: 'Pembagian Rapor Semester', content: 'Pembagian rapor akan dilaksanakan pada akhir bulan.', target_role: 'Semua' }
       ]);
       setLoading(false);
     }
@@ -54,9 +62,9 @@ export default function AdminAnnouncements() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (item) => {
+  const handleOpenEdit = (item: Announcement) => {
     setIsEditMode(true);
-    setCurrentId(item.ID || item.id);
+    setCurrentId(item.ID !== undefined ? item.ID : item.id!);
     setFormData({
       title: item.Title || item.title || '',
       content: item.Content || item.content || '',
@@ -65,7 +73,7 @@ export default function AdminAnnouncements() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
@@ -73,8 +81,11 @@ export default function AdminAnnouncements() {
 
       const payload = {
         title: formData.title,
+        Title: formData.title,
         content: formData.content,
-        target_role: formData.target_role
+        Content: formData.content,
+        target_role: formData.target_role,
+        TargetRole: formData.target_role
       };
 
       if (isEditMode) {
@@ -85,13 +96,14 @@ export default function AdminAnnouncements() {
 
       setIsModalOpen(false);
       fetchAnnouncements();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Gagal menyimpan pengumuman:', err);
-      alert('Terjadi kesalahan saat menyimpan pengumuman.');
+      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan pengumuman.';
+      alert(errMsg);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus pengumuman ini?')) return;
     try {
       const token = localStorage.getItem('token');
@@ -116,7 +128,7 @@ export default function AdminAnnouncements() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Pengumuman Sekolah</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola informasi dan pengumuman untuk siswa maupun guru.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Kelola informasi dan pengumuman untuk siswa maupun guru (TypeScript).</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -150,27 +162,28 @@ export default function AdminAnnouncements() {
                 <th className="py-3 px-6 whitespace-nowrap">No</th>
                 <th className="py-3 px-6 whitespace-nowrap">Judul Pengumuman</th>
                 <th className="py-3 px-6 whitespace-nowrap">Target Sasaran</th>
-                <th className="py-3 px-6 whitespace-nowrap">Isi Pengumuman</th>
+                <th className="py-3 px-6 min-w-[280px]">Isi Pengumuman</th>
                 <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Memuat data pengumuman...</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Memuat data pengumuman...</td>
                 </tr>
               ) : filteredAnnouncements.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-400">Tidak ada pengumuman ditemukan.</td>
+                  <td colSpan={5} className="text-center py-8 text-gray-400">Tidak ada pengumuman ditemukan.</td>
                 </tr>
               ) : (
                 filteredAnnouncements.map((item, index) => {
                   const title = item.Title || item.title || '-';
                   const target = item.TargetRole || item.target_role || 'Semua';
                   const content = item.Content || item.content || '-';
+                  const rowKey = item.ID !== undefined ? item.ID : (item.id || index);
 
                   return (
-                    <tr key={item.ID || item.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={rowKey} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-6 font-medium text-gray-400 whitespace-nowrap">{index + 1}</td>
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{title}</td>
                       <td className="py-3.5 px-6 whitespace-nowrap">
@@ -178,7 +191,7 @@ export default function AdminAnnouncements() {
                           {target}
                         </span>
                       </td>
-                      <td className="py-3.5 px-6 text-gray-500 max-w-xs truncate">{content}</td>
+                      <td className="py-3.5 px-6 text-gray-600 break-words">{content}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button 
@@ -189,7 +202,7 @@ export default function AdminAnnouncements() {
                             <Edit size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDelete(item.ID || item.id)}
+                            onClick={() => handleDelete(item.ID !== undefined ? item.ID : item.id!)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
                             title="Hapus"
                           >
@@ -206,7 +219,6 @@ export default function AdminAnnouncements() {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Pengumuman */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -248,7 +260,7 @@ export default function AdminAnnouncements() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Isi Pengumuman</label>
                 <textarea
-                  rows="4"
+                  rows={4}
                   required
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
