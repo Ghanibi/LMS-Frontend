@@ -2,46 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff } from 'lucide-react';
 
-interface ClassItem {
-  id?: number;
-  ID?: number;
-  name?: string;
-  Name?: string;
-  ClassName?: string;
-}
-
-interface StudentUser {
-  Name?: string;
-  Email?: string;
-}
-
-interface Student {
-  id?: number;
-  ID?: number;
-  Name?: string;
-  name?: string;
-  FullName?: string;
-  nama?: string;
-  Email?: string;
-  email?: string;
-  NIS?: string;
-  nis?: string;
-  NISN?: string;
-  nisn?: string;
-  Gender?: string;
-  gender?: string;
-  JenisKelamin?: string;
-  class_id?: number;
-  ClassID?: number;
-  Class?: ClassItem;
-  class?: ClassItem;
-  User?: StudentUser;
-  user?: StudentUser;
-}
-
 export default function AdminStudents() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [classesList, setClassesList] = useState<ClassItem[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [classesList, setClassesList] = useState<any[]>([]);
   const [search, setSearch] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -50,14 +13,11 @@ export default function AdminStudents() {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    Name: '',
-    Email: '',
-    Password: '',
-    NIS: '',
-    NISN: '',
-    Gender: 'Laki-laki',
-    ClassID: ''
+    Name: '', Email: '', Password: '', NIS: '', Gender: 'Laki-laki', ClassID: ''
   });
+  
+  // State error per field
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchStudents = async () => {
     try {
@@ -65,18 +25,9 @@ export default function AdminStudents() {
       const response = await axios.get('http://localhost:8080/api/students', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      const responseData = response.data;
-      if (Array.isArray(responseData)) {
-        setStudents(responseData);
-      } else if (responseData && Array.isArray(responseData.data)) {
-        setStudents(responseData.data);
-      } else {
-        setStudents([]);
-      }
+      setStudents(response.data.data || response.data || []);
       setLoading(false);
     } catch (err) {
-      console.error('Gagal mengambil data siswa:', err);
       setStudents([]);
       setLoading(false);
     }
@@ -88,21 +39,8 @@ export default function AdminStudents() {
       const response = await axios.get('http://localhost:8080/api/classes', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      const resData = response.data;
-      if (Array.isArray(resData)) {
-        setClassesList(resData);
-      } else if (resData && Array.isArray(resData.data)) {
-        setClassesList(resData.data);
-      } else if (resData && Array.isArray(resData.classes)) {
-        setClassesList(resData.classes);
-      } else {
-        setClassesList([]);
-      }
-    } catch (err) {
-      console.error('Gagal mengambil data kelas:', err);
-      setClassesList([]);
-    }
+      setClassesList(response.data.data || response.data || []);
+    } catch (err) {}
   };
 
   useEffect(() => {
@@ -114,49 +52,49 @@ export default function AdminStudents() {
     fetchClasses();
     setIsEditMode(false);
     setShowPassword(false);
-    setFormData({ Name: '', Email: '', Password: '', NIS: '', NISN: '', Gender: 'Laki-laki', ClassID: '' });
+    setFormErrors({});
+    setFormData({ Name: '', Email: '', Password: '', NIS: '', Gender: 'Laki-laki', ClassID: '' });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (student: Student) => {
+  const handleOpenEdit = (student: any) => {
     fetchClasses();
     setIsEditMode(true);
     setShowPassword(false);
-    setCurrentId(student.ID !== undefined ? student.ID : student.id!);
+    setFormErrors({});
+    setCurrentId(student.id || student.ID);
     
     setFormData({ 
-      Name: student.Name || student.name || student.FullName || student.nama || student.User?.Name || student.user?.Name || '', 
-      Email: student.Email || student.email || student.User?.Email || student.user?.Email || '',
+      Name: student.user?.Name || student.Name || '', 
+      Email: student.user?.Email || student.Email || '',
       Password: '',
-      NIS: student.NIS || student.nis || '',
-      NISN: student.NISN || student.nisn || student.NIS || student.nis || '', 
-      Gender: student.Gender || student.gender || student.JenisKelamin || 'Laki-laki',
-      ClassID: String(student.ClassID || student.class_id || student.Class?.ID || student.class?.id || '')
+      NIS: student.nisn || student.nis || student.NIS || '',
+      Gender: student.gender || student.Gender || 'Laki-laki',
+      ClassID: student.class_id || student.ClassID ? String(student.class_id || student.ClassID) : ''
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+    
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const payload = {
+      const payload: any = {
         name: formData.Name,
-        Name: formData.Name,
-        email: formData.Email || `${formData.NISN || formData.NIS || 'user'}@school.com`,
-        Email: formData.Email || `${formData.NISN || formData.NIS || 'user'}@school.com`,
-        password: formData.Password,
-        Password: formData.Password,
-        nis: formData.NISN || formData.NIS,
-        NIS: formData.NISN || formData.NIS,
-        nisn: formData.NISN || formData.NIS,
+        email: formData.Email || `${formData.NIS}@school.com`,
+        nis: formData.NIS,
+        nisn: formData.NIS,
         gender: formData.Gender,
-        Gender: formData.Gender,
-        ClassID: formData.ClassID ? Number(formData.ClassID) : null,
-        class_id: formData.ClassID ? Number(formData.ClassID) : null
+        class_id: Number(formData.ClassID)
       };
+
+      if (formData.Password && formData.Password.trim() !== '') {
+        payload.password = formData.Password;
+      }
 
       if (isEditMode) {
         await axios.put(`http://localhost:8080/api/students/${currentId}`, payload, { headers });
@@ -167,9 +105,19 @@ export default function AdminStudents() {
       setIsModalOpen(false);
       fetchStudents();
     } catch (err: any) {
-      console.error('Gagal menyimpan data siswa:', err);
-      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan data.';
-      alert(errMsg);
+      const errMsg = err.response?.data?.error || err.response?.data?.message || 'Gagal menyimpan data.';
+      const lowerErr = errMsg.toLowerCase();
+      const newErrors: Record<string, string> = {};
+
+      if (lowerErr.includes('email')) {
+        newErrors.Email = '(Email ini sudah terpakai)';
+      } else if (lowerErr.includes('nis') || lowerErr.includes('nisn')) {
+        newErrors.NIS = '(NISN ini sudah terdaftar)';
+      } else {
+        newErrors.General = errMsg;
+      }
+      
+      setFormErrors(newErrors);
     }
   };
 
@@ -181,17 +129,14 @@ export default function AdminStudents() {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchStudents();
-    } catch (err) {
-      console.error('Gagal menghapus data siswa:', err);
-      alert('Gagal menghapus data.');
-    }
+    } catch (err) {}
   };
 
-  const filteredStudents = Array.isArray(students) ? students.filter(s => {
-    const name = s.Name || s.name || s.FullName || s.nama || s.User?.Name || s.user?.Name || '';
-    const nisn = s.NISN || s.nisn || s.NIS || s.nis || '';
+  const filteredStudents = students.filter(s => {
+    const name = s.user?.Name || s.Name || '';
+    const nisn = s.nisn || s.nis || s.NIS || '';
     return name.toLowerCase().includes(search.toLowerCase()) || nisn.toLowerCase().includes(search.toLowerCase());
-  }) : [];
+  });
 
   return (
     <div className="space-y-6">
@@ -240,21 +185,17 @@ export default function AdminStudents() {
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">Memuat data siswa...</td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Memuat data siswa...</td></tr>
               ) : filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data siswa ditemukan.</td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data siswa ditemukan.</td></tr>
               ) : (
                 filteredStudents.map((student, index) => {
-                  const studentName = student.Name || student.name || student.FullName || student.nama || student.User?.Name || student.user?.Name || 'Tanpa Nama';
-                  const studentEmail = student.Email || student.email || student.User?.Email || student.user?.Email || '-';
-                  const studentNisn = student.NISN || student.nisn || student.NIS || student.nis || '-';
-                  const studentClass = student.Class?.Name || student.class?.name || student.Class?.ClassName || 'Belum ada kelas';
-                  const studentGender = student.Gender || student.gender || student.JenisKelamin || '-';
-                  const rowKey = student.ID !== undefined ? student.ID : (student.id || index);
+                  const studentName = student.user?.Name || student.Name || 'Tanpa Nama';
+                  const studentEmail = student.user?.Email || student.Email || '-';
+                  const studentNisn = student.nisn || student.nis || student.NIS || '-';
+                  const studentClass = student.class?.Name || student.Class?.Name || 'Belum ada kelas';
+                  const studentGender = student.gender || student.Gender || '-';
+                  const rowKey = student.id || student.ID || index;
 
                   return (
                     <tr key={rowKey} className="hover:bg-gray-50/50 transition">
@@ -266,18 +207,10 @@ export default function AdminStudents() {
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{studentGender}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleOpenEdit(student)}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" 
-                            title="Edit"
-                          >
+                          <button onClick={() => handleOpenEdit(student)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Edit">
                             <Edit size={14} />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(student.ID !== undefined ? student.ID : student.id!)}
-                            className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
-                            title="Hapus"
-                          >
+                          <button onClick={() => handleDelete(student.id || student.ID)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" title="Hapus">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -304,47 +237,46 @@ export default function AdminStudents() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {formErrors.General && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium text-center">
+                  {formErrors.General}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap</label>
                 <input
-                  type="text"
-                  required
-                  value={formData.Name}
+                  type="text" required value={formData.Name}
                   onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
-                  placeholder="Masukkan nama lengkap"
-                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email / Username Login</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.Email}
-                  onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
-                  placeholder="Contoh: siswa@sekolah.com"
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Password Baru
-                  {isEditMode && <span className="text-gray-400 font-normal ml-1">(Kosongkan jika tidak diubah)</span>}
+                  Email / Username Login
+                  {formErrors.Email && <span className="text-red-500 font-medium ml-1">{formErrors.Email}</span>}
+                </label>
+                <input
+                  type="email" required value={formData.Email}
+                  onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
+                  className={`w-full px-3.5 py-2 border rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] ${formErrors.Email ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Password {isEditMode && <span className="text-gray-400 font-normal ml-1">(Kosongkan jika tidak diubah)</span>}
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    required={!isEditMode}
-                    value={formData.Password}
+                    required={!isEditMode} value={formData.Password}
                     onChange={(e) => setFormData({ ...formData, Password: e.target.value })}
-                    placeholder={isEditMode ? "Ketik password baru untuk mengubah" : "Masukkan password login"}
                     className="w-full px-3.5 py-2 pr-10 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                   />
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -353,29 +285,28 @@ export default function AdminStudents() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">NISN</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  NISN
+                  {formErrors.NIS && <span className="text-red-500 font-medium ml-1">{formErrors.NIS}</span>}
+                </label>
                 <input
-                  type="text"
-                  required
-                  value={formData.NISN}
-                  onChange={(e) => setFormData({ ...formData, NISN: e.target.value })}
-                  placeholder="Masukkan NISN"
-                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                  type="text" required value={formData.NIS}
+                  onChange={(e) => setFormData({ ...formData, NIS: e.target.value })}
+                  className={`w-full px-3.5 py-2 border rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] ${formErrors.NIS ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Kelas</label>
                 <select
-                  required
-                  value={formData.ClassID}
+                  required value={formData.ClassID}
                   onChange={(e) => setFormData({ ...formData, ClassID: e.target.value })}
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] bg-white"
                 >
                   <option value="">-- Pilih Kelas --</option>
                   {classesList.map((cls) => (
-                    <option key={cls.ID || cls.id} value={cls.ID || cls.id}>
-                      {cls.Name || cls.name || cls.ClassName || 'Kelas'}
+                    <option key={cls.id || cls.ID} value={cls.id || cls.ID}>
+                      {cls.Name || cls.name}
                     </option>
                   ))}
                 </select>
@@ -394,17 +325,10 @@ export default function AdminStudents() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">
                   Batal
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1C4D8D] text-white hover:bg-[#1C4D8D]/90 transition shadow-sm"
-                >
+                <button type="submit" className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1C4D8D] text-white hover:bg-[#1C4D8D]/90 transition shadow-sm">
                   {isEditMode ? 'Simpan Perubahan' : 'Tambah Siswa'}
                 </button>
               </div>

@@ -1,190 +1,137 @@
-import React from 'react';
-import { GraduationCap, Users, BookOpen, FileText, Award, Bell } from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
-
-interface StatItem {
-  title: string;
-  value: string;
-  icon: LucideIcon;
-  color: string;
-  bg: string;
-}
-
-interface CalendarItem {
-  date: string;
-  title: string;
-  desc: string;
-}
-
-interface ActivityItem {
-  name: string;
-  act: string;
-  time: string;
-  img: string;
-}
-
-interface NotificationItem {
-  title: string;
-  time: string;
-  bg: string;
-}
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Users, GraduationCap, BookOpen, FileText, Award, Bell, Clock } from 'lucide-react';
 
 export default function DashboardHome() {
-  const stats: StatItem[] = [
-    { title: 'Total Guru', value: '86', icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { title: 'Total Siswa', value: '2.000', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { title: 'Total Mata Pelajaran', value: '19', icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Total Tugas', value: '154', icon: FileText, color: 'text-amber-500', bg: 'bg-amber-50' },
-    { title: 'Total Ujian', value: '48', icon: Award, color: 'text-rose-500', bg: 'bg-rose-50' },
-  ];
+  const [stats, setStats] = useState({
+    teachers: 0,
+    students: 0,
+    subjects: 0,
+    assignments: 0,
+    exams: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const calendarEvents: CalendarItem[] = [
-    { date: '12 DES', title: 'Ujian Akhir Semester', desc: '08:00 - 12:00 WIB' },
-    { date: '18 DES', title: 'Rapat Wali Kelas', desc: '13:00 WIB - Aula' },
-    { date: '22 DES', title: 'Pembagian Rapor', desc: '08:00 WIB - Kelas' },
-    { date: '25 DES', title: 'Libur Semester Ganjil', desc: 'Sepanjang hari' },
-  ];
+  // Mengambil data statistik real-time dari backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
 
-  const activities: ActivityItem[] = [
-    { name: 'Rahmania', act: 'Mengunggah materi Fisika Bab 5', time: '5 menit lalu', img: 'RA' },
-    { name: 'Ahmad Fauzi', act: 'Mengumpulkan tugas Matematika', time: '22 menit lalu', img: 'AF' },
-    { name: 'Dewi Lestari', act: 'Membuat jadwal ujian Biologi', time: '1 jam lalu', img: 'DL' },
-    { name: 'Sri Wulandari', act: 'Mengunduh materi Sejarah', time: '2 jam lalu', img: 'SW' },
-    { name: 'Bambang Wijaya', act: 'Menambahkan pengumuman baru', time: '3 jam lalu', img: 'BW' },
-  ];
+        // Mengambil data secara paralel untuk performa lebih cepat
+        const [teachersRes, studentsRes, subjectsRes] = await Promise.all([
+          axios.get('http://localhost:8080/api/teachers', { headers }).catch(() => ({ data: [] })),
+          axios.get('http://localhost:8080/api/students', { headers }).catch(() => ({ data: [] })),
+          axios.get('http://localhost:8080/api/subjects', { headers }).catch(() => ({ data: [] })),
+        ]);
 
-  const notifications: NotificationItem[] = [
-    { title: '15 tugas baru menunggu ditinjau', time: 'Baru saja', bg: 'bg-blue-50 text-blue-600' },
-    { title: '3 guru belum mengisi nilai UAS', time: '30 menit lalu', bg: 'bg-red-50 text-red-500' },
-    { title: '12 siswa baru terdaftar hari ini', time: '1 jam lalu', bg: 'bg-emerald-50 text-emerald-600' },
-    { title: 'Jadwal UAS akan dimulai besok', time: '2 jam lalu', bg: 'bg-amber-50 text-amber-500' },
-  ];
+        const getLen = (res: any) => {
+          const d = res.data;
+          if (Array.isArray(d)) return d.length;
+          if (d && Array.isArray(d.data)) return d.data.length;
+          return 0;
+        };
+
+        setStats({
+          teachers: getLen(teachersRes),
+          students: getLen(studentsRes),
+          subjects: getLen(subjectsRes),
+          assignments: 154, // Bisa disesuaikan dengan endpoint tugas jika sudah ada
+          exams: 48         // Bisa disesuaikan dengan endpoint ujian jika sudah ada
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error('Gagal memuat statistik:', err);
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
+      {/* Header sambutan */}
       <div>
         <h3 className="text-xl font-bold text-gray-800">Dashboard</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Selamat datang kembali, Fulani. Berikut ringkasan aktivitas sekolah hari ini (TypeScript).</p>
+        <p className="text-xs text-gray-400 mt-0.5">Selamat datang kembali, Admin. Berikut ringkasan aktivitas sekolah hari ini.</p>
       </div>
 
-      {/* Stats Cards (5 Kolom) */}
-      <div className="grid grid-cols-5 gap-4">
-        {stats.map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5">
-              <div className={`p-2.5 rounded-xl ${item.bg} ${item.color}`}>
-                <Icon size={20} />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-gray-800">{item.value}</p>
-                <p className="text-[11px] text-gray-400 font-medium">{item.title}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Grid Tengah (Grafik & Kalender Akademik) */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Grafik Aktivitas Sekolah (2 Kolom) */}
-        <div className="col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h4 className="font-bold text-gray-800 text-sm">Grafik Aktivitas Sekolah</h4>
-              <p className="text-[11px] text-gray-400">Jumlah aktivitas per bulan (semester ganjil)</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-medium text-gray-600">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-[#0F2854] rounded-full"></span> Tugas</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-[#4988C4] rounded-full"></span> Ujian</span>
-            </div>
-          </div>
-          
-          <div className="h-52 flex items-end justify-between px-2 pt-6 border-b border-gray-100">
-            {['Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'].map((month, i) => (
-              <div key={i} className="flex flex-col items-center gap-2 h-full justify-end">
-                <div className="flex items-end gap-1 h-40">
-                  <div className="w-3.5 bg-[#0F2854] rounded-t-sm" style={{ height: `${45 + i * 10}%` }}></div>
-                  <div className="w-3.5 bg-[#4988C4] rounded-t-sm" style={{ height: `${35 + i * 12}%` }}></div>
-                </div>
-                <span className="text-[11px] text-gray-400 font-medium">{month}</span>
-              </div>
-            ))}
+      {/* Statistik Cards (Real-time data) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><GraduationCap size={22} /></div>
+          <div>
+            <h4 className="text-lg font-bold text-gray-800">{loading ? '...' : stats.teachers}</h4>
+            <p className="text-[11px] text-gray-400 font-medium">Total Guru</p>
           </div>
         </div>
 
-        {/* Kalender Akademik (1 Kolom) */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Users size={22} /></div>
+          <div>
+            <h4 className="text-lg font-bold text-gray-800">{loading ? '...' : stats.students}</h4>
+            <p className="text-[11px] text-gray-400 font-medium">Total Siswa</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><BookOpen size={22} /></div>
+          <div>
+            <h4 className="text-lg font-bold text-gray-800">{loading ? '...' : stats.subjects}</h4>
+            <p className="text-[11px] text-gray-400 font-medium">Total Mata Pelajaran</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><FileText size={22} /></div>
+          <div>
+            <h4 className="text-lg font-bold text-gray-800">{stats.assignments}</h4>
+            <p className="text-[11px] text-gray-400 font-medium">Total Tugas</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><Award size={22} /></div>
+          <div>
+            <h4 className="text-lg font-bold text-gray-800">{stats.exams}</h4>
+            <p className="text-[11px] text-gray-400 font-medium">Total Ujian</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Bagian Bawah: Grafik & Kalender / Notifikasi */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Grafik Aktivitas */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <h4 className="font-bold text-gray-800 text-sm">Grafik Aktivitas Sekolah</h4>
+            <span className="text-xs text-gray-400">Semester Ganjil</span>
+          </div>
+          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs">
+            [Visualisasi Grafik Statistik Bulanan]
+          </div>
+        </div>
+
+        {/* Kalender Akademik */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <h4 className="font-bold text-gray-800 text-sm">Kalender Akademik</h4>
-          
-          <div className="space-y-3">
-            {calendarEvents.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/70 border border-gray-100">
-                <div className="bg-white px-2.5 py-1.5 rounded-lg text-center shadow-xs">
-                  <span className="block text-[10px] font-bold text-amber-500">{item.date.split(' ')[0]}</span>
-                  <span className="block text-[9px] font-bold text-gray-400">{item.date.split(' ')[1]}</span>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-800">{item.title}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{item.desc}</p>
-                </div>
+          <div className="space-y-3 text-xs">
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex gap-3 items-center">
+              <div className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1.5 rounded-lg text-center">12<br/><span className="text-[9px]">DES</span></div>
+              <div>
+                <p className="font-bold text-gray-800">Ujian Akhir Semester</p>
+                <p className="text-gray-400 text-[10px]">08:00 - 12:00 WIB</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Grid Bawah (Aktivitas Terbaru & Notifikasi) */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Aktivitas Terbaru (2 Kolom) */}
-        <div className="col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="font-bold text-gray-800 text-sm">Aktivitas Terbaru</h4>
-            <span className="text-xs text-[#1C4D8D] font-semibold cursor-pointer hover:underline">Lihat Semua</span>
-          </div>
-
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 text-[11px] font-bold text-gray-400 pb-2 border-b border-gray-100">
-              <span>Pengguna</span>
-              <span>Aktivitas</span>
-              <span className="text-right">Waktu</span>
             </div>
-
-            {activities.map((item, i) => (
-              <div key={i} className="grid grid-cols-3 items-center py-2 border-b border-gray-50 last:border-none text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#1C4D8D]/10 text-[#1C4D8D] font-bold flex items-center justify-center text-[10px]">
-                    {item.img}
-                  </div>
-                  <span className="font-semibold text-gray-800">{item.name}</span>
-                </div>
-                <span className="text-gray-600">{item.act}</span>
-                <span className="text-right text-gray-400 text-[11px]">{item.time}</span>
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex gap-3 items-center">
+              <div className="bg-purple-100 text-purple-700 font-bold px-2.5 py-1.5 rounded-lg text-center">18<br/><span className="text-[9px]">DES</span></div>
+              <div>
+                <p className="font-bold text-gray-800">Rapat Wali Kelas</p>
+                <p className="text-gray-400 text-[10px]">13:00 WIB - Aula</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Notifikasi (1 Kolom) */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="font-bold text-gray-800 text-sm">Notifikasi</h4>
-            <span className="text-xs text-[#1C4D8D] font-semibold">4 Baru</span>
-          </div>
-
-          <div className="space-y-3">
-            {notifications.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/70 border border-gray-100">
-                <div className={`p-2 rounded-lg ${item.bg}`}>
-                  <Bell size={14} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-800 leading-snug">{item.title}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{item.time}</p>
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>

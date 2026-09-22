@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminLayout from './components/AdminLayout';
 import DashboardHome from './pages/DashboardHome';
@@ -7,40 +8,38 @@ import AdminTeachers from './pages/AdminTeachers';
 import AdminSubjects from './pages/AdminSubjects';
 import AdminClasses from './pages/AdminClasses';
 import AdminCalendar from './pages/AdminCalendar';
-import AdminAnnouncements from './pages/AdminAnnounchements'; // Sesuaikan dengan nama file asli Anda
+import AdminAnnouncements from './pages/AdminAnnounchements'; // Sesuai nama file asli kamu
 
 export default function App() {
   const token = localStorage.getItem('token');
-  const [activeMenu, setActiveMenu] = useState('Dashboard');
 
+  // Jika belum login, arahkan ke halaman Login
   if (!token) {
-    return <Login />;
+    return (
+      <Routes>
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
   }
 
-  const renderContent = () => {
-    switch (activeMenu) {
-      case 'Dashboard':
-        return <DashboardHome />;
-      case 'Manajemen Siswa':
-        return <AdminStudents />;
-      case 'Manajemen Guru':
-        return <AdminTeachers />;
-      case 'Daftar Mata Pelajaran':
-        return <AdminSubjects />;
-      case 'Manajemen Kelas':
-        return <AdminClasses />;
-      case 'Kalender':
-        return <AdminCalendar />;
-      case 'Pengumuman':
-        return <AdminAnnouncements />;
-      default:
-        return <DashboardHome />;
-    }
-  };
-
   return (
-    <AdminLayout activeMenu={activeMenu} setActiveMenu={setActiveMenu}>
-      {renderContent()}
-    </AdminLayout>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+      
+      {/* Layout Admin yang membungkus seluruh menu menggunakan <Outlet /> */}
+      <Route element={<AdminLayout />}>
+        <Route path="/admin/dashboard" element={<DashboardHome />} />
+        <Route path="/admin/students" element={<AdminStudents />} />
+        <Route path="/admin/teachers" element={<AdminTeachers />} />
+        <Route path="/admin/subjects" element={<AdminSubjects />} />
+        <Route path="/admin/classes" element={<AdminClasses />} />
+        <Route path="/admin/calendar" element={<AdminCalendar />} />
+        <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+      </Route>
+
+      {/* Jika URL tidak terdaftar, kembalikan ke dashboard */}
+      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+    </Routes>
   );
 }

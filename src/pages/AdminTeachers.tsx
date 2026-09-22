@@ -2,54 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff } from 'lucide-react';
 
-interface TeacherUser {
-  Name?: string;
-  Email?: string;
-}
-
-interface Teacher {
-  id?: number;
-  ID?: number;
-  Name?: string;
-  name?: string;
-  FullName?: string;
-  Email?: string;
-  email?: string;
-  NIP?: string;
-  nip?: string;
-  Subject?: string;
-  subject?: string;
-  Gender?: string;
-  gender?: string;
-  JenisKelamin?: string;
-  User?: TeacherUser;
-  user?: TeacherUser;
-}
-
 const mapelList: string[] = [
-  "Matematika",
-  "Bahasa Indonesia",
-  "Bahasa Inggris",
-  "Pendidikan Agama",
-  "PPKn",
-  "Sejarah Indonesia",
-  "Pendidikan Jasmani, Olahraga, dan Kesehatan",
-  "Seni Budaya",
-  "IPAS",
-  "Projek Kreatif dan Kewirausahaan",
-  "Bimbingan Konseling",
-  "Pemrograman Web",
-  "Basis Data",
-  "Pemrograman Berorientasi Objek",
-  "Desain Grafis",
-  "Jaringan Komputer",
-  "Administrasi Sistem Jaringan",
-  "Marketing Digital",
-  "Manajemen Perkantoran",
+  "Matematika", "Bahasa Indonesia", "Bahasa Inggris", "Pendidikan Agama", "PPKn",
+  "Sejarah Indonesia", "Pendidikan Jasmani, Olahraga, dan Kesehatan", "Seni Budaya",
+  "IPAS", "Projek Kreatif dan Kewirausahaan", "Bimbingan Konseling", "Pemrograman Web",
+  "Basis Data", "Pemrograman Berorientasi Objek", "Desain Grafis", "Jaringan Komputer",
+  "Administrasi Sistem Jaringan", "Marketing Digital", "Manajemen Perkantoran",
 ];
 
 export default function AdminTeachers() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [search, setSearch] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -58,13 +20,10 @@ export default function AdminTeachers() {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    Name: '',
-    Email: '',
-    Password: '',
-    NIP: '',
-    Subject: '',
-    Gender: 'Laki-laki'
+    Name: '', Email: '', Password: '', NIP: '', Subject: '', Gender: 'Laki-laki'
   });
+  
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchTeachers = async () => {
     try {
@@ -72,18 +31,9 @@ export default function AdminTeachers() {
       const response = await axios.get('http://localhost:8080/api/teachers', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      const responseData = response.data;
-      if (Array.isArray(responseData)) {
-        setTeachers(responseData);
-      } else if (responseData && Array.isArray(responseData.data)) {
-        setTeachers(responseData.data);
-      } else {
-        setTeachers([]);
-      }
+      setTeachers(response.data.data || response.data || []);
       setLoading(false);
     } catch (err) {
-      console.error('Gagal mengambil data guru:', err);
       setTeachers([]);
       setLoading(false);
     }
@@ -96,46 +46,47 @@ export default function AdminTeachers() {
   const handleOpenAdd = () => {
     setIsEditMode(false);
     setShowPassword(false);
+    setFormErrors({});
     setFormData({ Name: '', Email: '', Password: '', NIP: '', Subject: '', Gender: 'Laki-laki' });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (teacher: Teacher) => {
+  const handleOpenEdit = (teacher: any) => {
     setIsEditMode(true);
     setShowPassword(false);
-    setCurrentId(teacher.ID !== undefined ? teacher.ID : teacher.id!);
+    setFormErrors({});
+    setCurrentId(teacher.id || teacher.ID);
     
     setFormData({ 
-      Name: teacher.Name || teacher.name || teacher.User?.Name || '', 
-      Email: teacher.Email || teacher.email || teacher.User?.Email || '',
+      Name: teacher.user?.Name || teacher.Name || '', 
+      Email: teacher.user?.Email || teacher.Email || '',
       Password: '',
-      NIP: teacher.NIP || teacher.nip || '',
-      Subject: teacher.Subject || teacher.subject || '', 
-      Gender: teacher.Gender || teacher.gender || teacher.JenisKelamin || 'Laki-laki'
+      NIP: teacher.nip || teacher.NIP || '',
+      Subject: teacher.subject || teacher.Subject || '', 
+      Gender: teacher.gender || teacher.Gender || 'Laki-laki'
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+    
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const payload = {
+      const payload: any = {
         name: formData.Name,
-        Name: formData.Name,
         email: formData.Email || `${formData.NIP || 'guru'}@sekolah.com`,
-        Email: formData.Email || `${formData.NIP || 'guru'}@sekolah.com`,
-        password: formData.Password,
-        Password: formData.Password,
         nip: formData.NIP,
-        NIP: formData.NIP,
         subject: formData.Subject,
-        Subject: formData.Subject,
-        gender: formData.Gender,
-        Gender: formData.Gender
+        gender: formData.Gender
       };
+
+      if (formData.Password && formData.Password.trim() !== '') {
+        payload.password = formData.Password;
+      }
 
       if (isEditMode) {
         await axios.put(`http://localhost:8080/api/teachers/${currentId}`, payload, { headers });
@@ -146,9 +97,31 @@ export default function AdminTeachers() {
       setIsModalOpen(false);
       fetchTeachers();
     } catch (err: any) {
-      console.error('Gagal menyimpan data guru:', err);
-      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan data.';
-      alert(errMsg);
+      console.error("DETAIL ERROR DARI BACKEND:", err.response?.data);
+      
+      const responseMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+      const rawErr = typeof responseMsg === 'object' ? JSON.stringify(responseMsg) : String(responseMsg);
+      const lowerErr = rawErr.toLowerCase();
+      
+      const newErrors: Record<string, string> = {};
+
+      if (lowerErr.includes('email') || lowerErr.includes('unique') || lowerErr.includes('duplicate')) {
+        newErrors.Email = 'Email ini sudah terpakai!';
+      } 
+      
+      if (lowerErr.includes('nip') || lowerErr.includes('duplicate')) {
+        newErrors.NIP = 'NIP ini sudah terdaftar!';
+      } 
+      
+      if (lowerErr.includes('password') || lowerErr.includes('min')) {
+        newErrors.Password = 'Password minimal 6 karakter!';
+      }
+
+      if (Object.keys(newErrors).length === 0) {
+        newErrors.General = rawErr;
+      }
+      
+      setFormErrors(newErrors);
     }
   };
 
@@ -160,17 +133,14 @@ export default function AdminTeachers() {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchTeachers();
-    } catch (err) {
-      console.error('Gagal menghapus data guru:', err);
-      alert('Gagal menghapus data.');
-    }
+    } catch (err) {}
   };
 
-  const filteredTeachers = Array.isArray(teachers) ? teachers.filter(t => {
-    const name = t.Name || t.name || t.User?.Name || '';
-    const nip = t.NIP || t.nip || '';
+  const filteredTeachers = teachers.filter(t => {
+    const name = t.user?.Name || t.Name || '';
+    const nip = t.nip || t.NIP || '';
     return name.toLowerCase().includes(search.toLowerCase()) || nip.toLowerCase().includes(search.toLowerCase());
-  }) : [];
+  });
 
   return (
     <div className="space-y-6">
@@ -219,21 +189,17 @@ export default function AdminTeachers() {
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">Memuat data guru...</td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Memuat data guru...</td></tr>
               ) : filteredTeachers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data guru ditemukan.</td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data guru ditemukan.</td></tr>
               ) : (
                 filteredTeachers.map((teacher, index) => {
-                  const teacherName = teacher.Name || teacher.name || teacher.User?.Name || 'Tanpa Nama';
-                  const teacherEmail = teacher.Email || teacher.email || teacher.User?.Email || '-';
-                  const teacherNip = teacher.NIP || teacher.nip || '-';
-                  const teacherSubject = teacher.Subject || teacher.subject || '-';
-                  const teacherGender = teacher.Gender || teacher.gender || teacher.JenisKelamin || '-';
-                  const rowKey = teacher.ID !== undefined ? teacher.ID : (teacher.id || index);
+                  const teacherName = teacher.user?.Name || teacher.Name || 'Tanpa Nama';
+                  const teacherEmail = teacher.user?.Email || teacher.Email || '-';
+                  const teacherNip = teacher.nip || teacher.NIP || '-';
+                  const teacherSubject = teacher.subject || teacher.Subject || '-';
+                  const teacherGender = teacher.gender || teacher.Gender || '-';
+                  const rowKey = teacher.id || teacher.ID || index;
 
                   return (
                     <tr key={rowKey} className="hover:bg-gray-50/50 transition">
@@ -245,18 +211,10 @@ export default function AdminTeachers() {
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{teacherGender}</td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleOpenEdit(teacher)}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" 
-                            title="Edit"
-                          >
+                          <button onClick={() => handleOpenEdit(teacher)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Edit">
                             <Edit size={14} />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(teacher.ID !== undefined ? teacher.ID : teacher.id!)}
-                            className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" 
-                            title="Hapus"
-                          >
+                          <button onClick={() => handleDelete(teacher.id || teacher.ID)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition" title="Hapus">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -283,12 +241,16 @@ export default function AdminTeachers() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {formErrors.General && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium text-center">
+                  ⚠️ {formErrors.General}
+                </div>
+              )}
+              
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap</label>
                 <input
-                  type="text"
-                  required
-                  value={formData.Name}
+                  type="text" required value={formData.Name}
                   onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
                   placeholder="Masukkan nama lengkap guru"
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
@@ -296,34 +258,35 @@ export default function AdminTeachers() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email / Username Login</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-gray-600">Email / Username Login</label>
+                  {formErrors.Email && <span className="text-red-500 text-[11px] font-bold">⚠️ {formErrors.Email}</span>}
+                </div>
                 <input
-                  type="email"
-                  required
-                  value={formData.Email}
+                  type="email" required value={formData.Email}
                   onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
                   placeholder="Contoh: guru@sekolah.com"
-                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                  className={`w-full px-3.5 py-2 border rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] ${formErrors.Email ? 'border-red-500 bg-red-50/40 text-red-900' : 'border-gray-200'}`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Password Baru
-                  {isEditMode && <span className="text-gray-400 font-normal ml-1">(Kosongkan jika tidak diubah)</span>}
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-gray-600">
+                    Password {isEditMode && <span className="text-gray-400 font-normal">(Opsional)</span>}
+                  </label>
+                  {formErrors.Password && <span className="text-red-500 text-[11px] font-bold">⚠️ {formErrors.Password}</span>}
+                </div>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    required={!isEditMode}
-                    value={formData.Password}
+                    required={!isEditMode} value={formData.Password}
                     onChange={(e) => setFormData({ ...formData, Password: e.target.value })}
-                    placeholder={isEditMode ? "Ketik password baru untuk mengubah" : "Masukkan password login"}
-                    className="w-full px-3.5 py-2 pr-10 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                    placeholder="Minimal 6 karakter"
+                    className={`w-full px-3.5 py-2 pr-10 border rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] ${formErrors.Password ? 'border-red-500 bg-red-50/40' : 'border-gray-200'}`}
                   />
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -332,30 +295,28 @@ export default function AdminTeachers() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">NIP (Nomor Induk Pegawai)</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-gray-600">NIP (Nomor Induk Pegawai)</label>
+                  {formErrors.NIP && <span className="text-red-500 text-[11px] font-bold">⚠️ {formErrors.NIP}</span>}
+                </div>
                 <input
-                  type="text"
-                  required
-                  value={formData.NIP}
+                  type="text" required value={formData.NIP}
                   onChange={(e) => setFormData({ ...formData, NIP: e.target.value })}
                   placeholder="Masukkan NIP"
-                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
+                  className={`w-full px-3.5 py-2 border rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] ${formErrors.NIP ? 'border-red-500 bg-red-50/40 text-red-900' : 'border-gray-200'}`}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Bidang Studi / Mengajar</label>
                 <select
-                  required
-                  value={formData.Subject}
+                  required value={formData.Subject}
                   onChange={(e) => setFormData({ ...formData, Subject: e.target.value })}
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] bg-white"
                 >
                   <option value="">-- Pilih Mata Pelajaran --</option>
                   {mapelList.map((mapel, index) => (
-                    <option key={index} value={mapel}>
-                      {mapel}
-                    </option>
+                    <option key={index} value={mapel}>{mapel}</option>
                   ))}
                 </select>
               </div>
@@ -373,17 +334,10 @@ export default function AdminTeachers() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">
                   Batal
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1C4D8D] text-white hover:bg-[#1C4D8D]/90 transition shadow-sm"
-                >
+                <button type="submit" className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1C4D8D] text-white hover:bg-[#1C4D8D]/90 transition shadow-sm">
                   {isEditMode ? 'Simpan Perubahan' : 'Tambah Guru'}
                 </button>
               </div>
