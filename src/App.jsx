@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminLayout from './components/AdminLayout';
 import DashboardHome from './pages/DashboardHome';
@@ -8,27 +8,24 @@ import AdminTeachers from './pages/AdminTeachers';
 import AdminSubjects from './pages/AdminSubjects';
 import AdminClasses from './pages/AdminClasses';
 import AdminCalendar from './pages/AdminCalendar';
-import AdminAnnouncements from './pages/AdminAnnounchements'; // Sesuai nama file asli kamu
+import AdminAnnouncements from './pages/AdminAnnounchements'; // Sesuai nama file asli Anda
+
+// Komponen pembatas untuk mengecek token secara dinamis saat rute diakses
+function ProtectedLayout() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <AdminLayout />;
+}
 
 export default function App() {
-  const token = localStorage.getItem('token');
-
-  // Jika belum login, arahkan ke halaman Login
-  if (!token) {
-    return (
-      <Routes>
-        <Route path="*" element={<Login />} />
-      </Routes>
-    );
-  }
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
       
-      {/* Layout Admin yang membungkus seluruh menu menggunakan <Outlet /> */}
-      <Route element={<AdminLayout />}>
+      {/* Semua rute admin di bawah ini otomatis dilindungi oleh ProtectedLayout */}
+      <Route element={<ProtectedLayout />}>
         <Route path="/admin/dashboard" element={<DashboardHome />} />
         <Route path="/admin/students" element={<AdminStudents />} />
         <Route path="/admin/teachers" element={<AdminTeachers />} />
@@ -38,8 +35,9 @@ export default function App() {
         <Route path="/admin/announcements" element={<AdminAnnouncements />} />
       </Route>
 
-      {/* Jika URL tidak terdaftar, kembalikan ke dashboard */}
+      {/* Redirect default */}
+      <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Routes>
   );
-}
+}s
