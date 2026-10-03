@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
 interface Subject {
-  id?: string | number;
+  id?: number;
   ID?: number;
   name?: string;
   Name?: string;
@@ -14,28 +16,6 @@ interface Subject {
   deskripsi?: string;
 }
 
-const mapelListDefault: string[] = [
-  "Matematika",
-  "Bahasa Indonesia",
-  "Bahasa Inggris",
-  "Pendidikan Agama",
-  "PPKn",
-  "Sejarah Indonesia",
-  "Pendidikan Jasmani, Olahraga, dan Kesehatan",
-  "Seni Budaya",
-  "IPAS",
-  "Projek Kreatif dan Kewirausahaan",
-  "Bimbingan Konseling",
-  "Pemrograman Web",
-  "Basis Data",
-  "Pemrograman Berorientasi Objek",
-  "Desain Grafis",
-  "Jaringan Komputer",
-  "Administrasi Sistem Jaringan",
-  "Marketing Digital",
-  "Manajemen Perkantoran",
-];
-
 export default function AdminSubjects() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [search, setSearch] = useState<string>('');
@@ -43,58 +23,30 @@ export default function AdminSubjects() {
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [currentId, setCurrentId] = useState<string | number | null>(null);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
+  // Server (database) adalah sumber data utama
   const fetchSubjects = async () => {
     try {
-      const savedSubjects = localStorage.getItem('school_subjects_list');
-      if (savedSubjects) {
-        setSubjects(JSON.parse(savedSubjects));
-        setLoading(false);
-        return;
-      }
-
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:8080/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const resData = response.data;
-      let dbData: Subject[] = [];
+      let data: Subject[] = [];
       if (Array.isArray(resData)) {
-        dbData = resData;
+        data = resData;
       } else if (resData && Array.isArray(resData.data)) {
-        dbData = resData.data;
+        data = resData.data;
       }
-
-      const formattedDefault: Subject[] = mapelListDefault.map((m, idx) => ({
-        id: `default-${idx + 1}`,
-        name: m,
-        code: `MP-${101 + idx}`,
-        description: 'Mata pelajaran wajib dan kejuruan sekolah'
-      }));
-
-      const combined = [...dbData, ...formattedDefault.filter(def => !dbData.some(db => (db.Name || db.name)?.toLowerCase() === def.name?.toLowerCase()))];
-      
-      setSubjects(combined);
-      localStorage.setItem('school_subjects_list', JSON.stringify(combined));
-      setLoading(false);
+      setSubjects(data);
     } catch (err) {
-      console.error('Gagal mengambil data dari API, menggunakan list default:', err);
-      const savedSubjects = localStorage.getItem('school_subjects_list');
-      if (savedSubjects) {
-        setSubjects(JSON.parse(savedSubjects));
-      } else {
-        const defaultData: Subject[] = mapelListDefault.map((m, idx) => ({
-          id: `default-${idx + 1}`,
-          name: m,
-          code: `MP-${101 + idx}`,
-          description: 'Mata pelajaran wajib dan kejuruan sekolah'
-        }));
-        setSubjects(defaultData);
-        localStorage.setItem('school_subjects_list', JSON.stringify(defaultData));
-      }
+      console.error('Gagal mengambil data mata pelajaran:', err);
+      setSubjects([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -105,7 +57,9 @@ export default function AdminSubjects() {
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
     setFormData({ name: '', code: '', description: '' });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
@@ -113,12 +67,13 @@ export default function AdminSubjects() {
     setIsEditMode(true);
     const targetId = subject.ID !== undefined ? subject.ID : subject.id!;
     setCurrentId(targetId);
-    
+
     setFormData({
       name: subject.Name || subject.name || '',
       code: subject.Code || subject.code || '',
       description: subject.Description || subject.description || subject.deskripsi || ''
     });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
@@ -130,67 +85,35 @@ export default function AdminSubjects() {
 
       const payload = {
         name: formData.name,
-        Name: formData.name,
         code: formData.code,
-        Code: formData.code,
-        description: formData.description,
-        Description: formData.description
+        description: formData.description
       };
 
-      if (isEditMode) {
-        const updatedSubjects = subjects.map(s => {
-          const sId = s.ID !== undefined ? s.ID : s.id;
-          if (sId === currentId) {
-            return { ...s, name: formData.name, Name: formData.name, code: formData.code, Code: formData.code, description: formData.description, Description: formData.description };
-          }
-          return s;
-        });
-        setSubjects(updatedSubjects);
-        localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
-
-        if (typeof currentId === 'number' || (typeof currentId === 'string' && !currentId.startsWith('default-'))) {
-          await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers }).catch(() => {});
-        }
-      } else {
-        const newSub: Subject = {
-          id: `custom-${Date.now()}`,
-          ID: Date.now(),
-          name: formData.name,
-          Name: formData.name,
-          code: formData.code,
-          Code: formData.code,
-          description: formData.description,
-          Description: formData.description
-        };
-        const updatedSubjects = [newSub, ...subjects];
-        setSubjects(updatedSubjects);
-        localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
-
-        await axios.post('http://localhost:8080/api/subjects', payload, { headers }).catch(() => {});
-      }
+      let subjectId = currentId;
+      if (isEditMode) await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
+      else subjectId = responseRecordId(await axios.post('http://localhost:8080/api/subjects', payload, { headers }));
+      if (subjectId) await uploadAttachments('subjects', subjectId, attachmentFiles, headers);
 
       setIsModalOpen(false);
-    } catch (err) {
+      fetchSubjects();
+    } catch (err: any) {
       console.error('Gagal menyimpan data mata pelajaran:', err);
-      setIsModalOpen(false);
+      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan mata pelajaran.';
+      alert(errMsg);
     }
   };
 
-  const handleDelete = async (id: string | number) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      const updatedSubjects = subjects.filter(s => (s.ID !== undefined ? s.ID : s.id) !== id);
-      setSubjects(updatedSubjects);
-      localStorage.setItem('school_subjects_list', JSON.stringify(updatedSubjects));
-
-      if (typeof id === 'number' || (typeof id === 'string' && !id.startsWith('default-'))) {
-        await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => {});
-      }
+      await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchSubjects();
     } catch (err) {
-      console.error('Gagal menghapus dari server:', err);
+      console.error('Gagal menghapus mata pelajaran:', err);
+      alert('Gagal menghapus data mata pelajaran.');
     }
   };
 
@@ -339,6 +262,8 @@ export default function AdminSubjects() {
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran mata pelajaran" resourceType="subjects" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

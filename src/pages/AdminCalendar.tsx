@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar as CalendarIcon, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
 interface CalendarEvent {
-  id?: string | number;
+  id?: number;
   ID?: number;
   title?: string;
   Title?: string;
@@ -15,11 +17,6 @@ interface CalendarEvent {
   Category?: string;
 }
 
-const defaultEvents: CalendarEvent[] = [
-  { id: 1, title: 'Ujian Tengah Semester (UTS)', date: '2026-10-10', description: 'Pelaksanaan UTS Semester Ganjil', category: 'Akademik' },
-  { id: 2, title: 'Libur Nasional Hari Pahlawan', date: '2026-11-10', description: 'Libur kegiatan belajar mengajar', category: 'Libur' }
-];
-
 export default function AdminCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [search, setSearch] = useState<string>('');
@@ -27,49 +24,35 @@ export default function AdminCalendar() {
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [currentId, setCurrentId] = useState<string | number | null>(null);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     date: '',
     description: '',
     category: 'Akademik'
   });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
+  // Server (database) adalah sumber data utama
   const fetchEvents = async () => {
     try {
-      const savedEvents = localStorage.getItem('school_calendar_events');
-      if (savedEvents) {
-        setEvents(JSON.parse(savedEvents));
-        setLoading(false);
-        return;
-      }
-
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:8080/api/calendars', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      const resData = response.data;
-      let dbData: CalendarEvent[] = [];
-      if (Array.isArray(resData)) {
-        dbData = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        dbData = resData.data;
-      }
 
-      const combined = dbData.length > 0 ? dbData : defaultEvents;
-      setEvents(combined);
-      localStorage.setItem('school_calendar_events', JSON.stringify(combined));
-      setLoading(false);
-    } catch (err) {
-      console.error('Gagal mengambil data kalender dari API, menggunakan data lokal:', err);
-      const savedEvents = localStorage.getItem('school_calendar_events');
-      if (savedEvents) {
-        setEvents(JSON.parse(savedEvents));
-      } else {
-        setEvents(defaultEvents);
-        localStorage.setItem('school_calendar_events', JSON.stringify(defaultEvents));
+      const resData = response.data;
+      let data: CalendarEvent[] = [];
+      if (Array.isArray(resData)) {
+        data = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        data = resData.data;
       }
+      setEvents(data);
+    } catch (err) {
+      console.error('Gagal mengambil data kalender:', err);
+      setEvents([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -80,6 +63,8 @@ export default function AdminCalendar() {
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
+    setAttachmentFiles([]);
     setFormData({ title: '', date: '', description: '', category: 'Akademik' });
     setIsModalOpen(true);
   };
@@ -88,6 +73,7 @@ export default function AdminCalendar() {
     setIsEditMode(true);
     const targetId = ev.ID !== undefined ? ev.ID : ev.id!;
     setCurrentId(targetId);
+    setAttachmentFiles([]);
     
     const rawDate = ev.Date || ev.date || '';
     setFormData({
@@ -107,71 +93,36 @@ export default function AdminCalendar() {
 
       const payload = {
         title: formData.title,
-        Title: formData.title,
         date: formData.date,
-        Date: formData.date,
         description: formData.description,
-        Description: formData.description,
-        category: formData.category,
-        Category: formData.category
+        category: formData.category
       };
 
-      if (isEditMode) {
-        const updatedEvents = events.map(ev => {
-          const evId = ev.ID !== undefined ? ev.ID : ev.id;
-          if (evId === currentId) {
-            return { ...ev, title: formData.title, Title: formData.title, date: formData.date, Date: formData.date, description: formData.description, Description: formData.description, category: formData.category, Category: formData.category };
-          }
-          return ev;
-        });
-        setEvents(updatedEvents);
-        localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
-
-        if (typeof currentId === 'number' || (typeof currentId === 'string' && !currentId.startsWith('default-') && !currentId.startsWith('custom-'))) {
-          await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers }).catch(() => {});
-        }
-      } else {
-        const newEvent: CalendarEvent = {
-          id: `custom-${Date.now()}`,
-          ID: Date.now(),
-          title: formData.title,
-          Title: formData.title,
-          date: formData.date,
-          Date: formData.date,
-          description: formData.description,
-          Description: formData.description,
-          category: formData.category,
-          Category: formData.category
-        };
-        const updatedEvents = [newEvent, ...events];
-        setEvents(updatedEvents);
-        localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
-
-        await axios.post('http://localhost:8080/api/calendars', payload, { headers }).catch(() => {});
-      }
+      let calendarId = currentId;
+      if (isEditMode) await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers });
+      else calendarId = responseRecordId(await axios.post('http://localhost:8080/api/calendars', payload, { headers }));
+      if (calendarId) await uploadAttachments('calendars', calendarId, attachmentFiles, headers);
 
       setIsModalOpen(false);
-    } catch (err) {
+      fetchEvents();
+    } catch (err: any) {
       console.error('Gagal menyimpan agenda:', err);
-      setIsModalOpen(false);
+      const errMsg = err.response?.data?.error || 'Terjadi kesalahan saat menyimpan agenda.';
+      alert(errMsg);
     }
   };
 
-  const handleDelete = async (id: string | number) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus agenda ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      const updatedEvents = events.filter(ev => (ev.ID !== undefined ? ev.ID : ev.id) !== id);
-      setEvents(updatedEvents);
-      localStorage.setItem('school_calendar_events', JSON.stringify(updatedEvents));
-
-      if (typeof id === 'number' || (typeof id === 'string' && !id.startsWith('default-') && !id.startsWith('custom-'))) {
-        await axios.delete(`http://localhost:8080/api/calendars/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => {});
-      }
+      await axios.delete(`http://localhost:8080/api/calendars/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchEvents();
     } catch (err) {
       console.error('Gagal menghapus agenda:', err);
+      alert('Gagal menghapus data agenda.');
     }
   };
 
@@ -345,6 +296,8 @@ export default function AdminCalendar() {
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran kegiatan" resourceType="calendars" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

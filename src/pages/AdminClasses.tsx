@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Home, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
 interface SchoolClass {
   id?: number;
@@ -17,10 +19,22 @@ interface SchoolClass {
   ClassNumber?: number;
   is_plus?: boolean;
   IsPlus?: boolean;
+  homeroom_teacher_id?: number;
+  HomeroomTeacherID?: number;
+  HomeroomTeacher?: { User?: { Name?: string } };
+  homeroom_teacher?: { User?: { Name?: string }; user?: { Name?: string }; };
 }
+
+// SMP: kelas 7-9, SMA/SMK: kelas 10-12
+const getGradeOptions = (levelName: string): number[] => {
+  if (levelName === 'SMP') return [7, 8, 9];
+  return [10, 11, 12];
+};
 
 export default function AdminClasses() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [levels, setLevels] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [search, setSearch] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -29,12 +43,20 @@ export default function AdminClasses() {
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    education_level_id: 1,
+    education_level_id: 0, // 0 = belum dipilih
     grade: 10,
     major: '',
     class_number: 1,
-    is_plus: false
+    is_plus: false,
+    homeroom_teacher_id: ''
   });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+
+  // Jenjang yang sedang dipilih di form
+  const selectedLevel = levels.find(l => (l.ID || l.id) === formData.education_level_id);
+  const selectedLevelName = String(selectedLevel?.Name || selectedLevel?.name || '').toUpperCase();
+  const isSMK = selectedLevelName === 'SMK';
+  const gradeOptions = getGradeOptions(selectedLevelName);
 
   const fetchClasses = async () => {
     try {
@@ -59,19 +81,68 @@ export default function AdminClasses() {
     }
   };
 
+  const fetchLevels = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/api/education-levels', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const resData = response.data;
+      if (Array.isArray(resData)) {
+        setLevels(resData);
+      } else if (resData && Array.isArray(resData.data)) {
+        setLevels(resData.data);
+      } else {
+        setLevels([]);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data jenjang pendidikan:', err);
+      setLevels([]);
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/teachers', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setTeachers(response.data.data || response.data || []);
+    } catch {
+      setTeachers([]);
+    }
+  };
+
   useEffect(() => {
     fetchClasses();
+    fetchLevels();
+    fetchTeachers();
   }, []);
+
+  const handleLevelChange = (levelId: number) => {
+    const lvl = levels.find(l => (l.ID || l.id) === levelId);
+    const lvlName = String(lvl?.Name || lvl?.name || '').toUpperCase();
+    const options = getGradeOptions(lvlName);
+
+    setFormData(prev => ({
+      ...prev,
+      education_level_id: levelId,
+      grade: options.includes(prev.grade) ? prev.grade : options[0],
+      major: lvlName === 'SMK' ? (prev.major || 'DKV') : ''
+    }));
+  };
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
+    setAttachmentFiles([]);
     setFormData({
       name: '',
-      education_level_id: 1,
+      education_level_id: 0,
       grade: 10,
-      major: 'DKV',
+      major: '',
       class_number: 1,
-      is_plus: false
+      is_plus: false,
+      homeroom_teacher_id: ''
     });
     setIsModalOpen(true);
   };
@@ -79,13 +150,15 @@ export default function AdminClasses() {
   const handleOpenEdit = (cls: SchoolClass) => {
     setIsEditMode(true);
     setCurrentId(cls.ID !== undefined ? cls.ID : cls.id!);
+    setAttachmentFiles([]);
     setFormData({
       name: cls.Name || cls.name || '',
-      education_level_id: cls.EducationLevelID || cls.education_level_id || 1,
+      education_level_id: cls.EducationLevelID || cls.education_level_id || 0,
       grade: cls.Grade || cls.grade || 10,
       major: cls.Major || cls.major || '',
       class_number: cls.ClassNumber || cls.class_number || 1,
-      is_plus: cls.IsPlus !== undefined ? cls.IsPlus : (cls.is_plus || false)
+      is_plus: cls.IsPlus !== undefined ? cls.IsPlus : (cls.is_plus || false),
+      homeroom_teacher_id: String(cls.HomeroomTeacherID || cls.homeroom_teacher_id || '')
     });
     setIsModalOpen(true);
   };
@@ -96,7 +169,11 @@ export default function AdminClasses() {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const generatedName = formData.name || `${formData.grade} ${formData.major} ${formData.is_plus ? 'PLUS' : formData.class_number}`;
+      // SMK: "10 DKV 1" / "10 DKV PLUS"  |  SMP & SMA: "7-1", "10-2", dst
+      const autoName = isSMK
+        ? `${formData.grade} ${formData.major} ${formData.is_plus ? 'PLUS' : formData.class_number}`
+        : `${formData.grade}-${formData.class_number}`;
+      const generatedName = formData.name || autoName;
 
       const payload = {
         name: generatedName,
@@ -109,14 +186,14 @@ export default function AdminClasses() {
         class_number: Number(formData.class_number),
         ClassNumber: Number(formData.class_number),
         is_plus: Boolean(formData.is_plus),
-        IsPlus: Boolean(formData.is_plus)
+        IsPlus: Boolean(formData.is_plus),
+        homeroom_teacher_id: formData.homeroom_teacher_id ? Number(formData.homeroom_teacher_id) : null
       };
 
-      if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/classes/${currentId}`, payload, { headers });
-      } else {
-        await axios.post('http://localhost:8080/api/classes', payload, { headers });
-      }
+      let classId = currentId;
+      if (isEditMode) await axios.put(`http://localhost:8080/api/classes/${currentId}`, payload, { headers });
+      else classId = responseRecordId(await axios.post('http://localhost:8080/api/classes', payload, { headers }));
+      if (classId) await uploadAttachments('classes', classId, attachmentFiles, headers);
 
       setIsModalOpen(false);
       fetchClasses();
@@ -187,6 +264,7 @@ export default function AdminClasses() {
                 <th className="py-3 px-6 whitespace-nowrap">Nama Kelas</th>
                 <th className="py-3 px-6 whitespace-nowrap">Tingkat (Grade)</th>
                 <th className="py-3 px-6 whitespace-nowrap">Jurusan</th>
+                <th className="py-3 px-6 whitespace-nowrap">Wali Kelas</th>
                 <th className="py-3 px-6 whitespace-nowrap">Status Kelas</th>
                 <th className="py-3 px-6 text-center whitespace-nowrap">Aksi</th>
               </tr>
@@ -194,11 +272,11 @@ export default function AdminClasses() {
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400">Memuat data kelas...</td>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">Memuat data kelas...</td>
                 </tr>
               ) : filteredClasses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400">Tidak ada data kelas ditemukan.</td>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">Tidak ada data kelas ditemukan.</td>
                 </tr>
               ) : (
                 filteredClasses.map((cls, index) => {
@@ -214,6 +292,9 @@ export default function AdminClasses() {
                       <td className="py-3.5 px-6 font-bold text-gray-800 whitespace-nowrap">{className}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">Kelas {classGrade}</td>
                       <td className="py-3.5 px-6 text-gray-500 whitespace-nowrap">{classMajor}</td>
+                      <td className="py-3.5 px-6 whitespace-nowrap text-gray-600">
+                        {cls.HomeroomTeacher?.User?.Name || cls.homeroom_teacher?.User?.Name || cls.homeroom_teacher?.user?.Name || 'Belum ditentukan'}
+                      </td>
                       <td className="py-3.5 px-6 whitespace-nowrap">
                         {isPlus ? (
                           <span className="px-2.5 py-1 bg-amber-50 text-amber-600 font-semibold rounded-md text-[10px]">PLUS</span>
@@ -267,9 +348,28 @@ export default function AdminClasses() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Contoh: 10 DKV PLUS (Boleh dikosongkan)"
+                  placeholder={isSMK || !selectedLevelName
+                    ? 'Contoh: 10 DKV PLUS (Boleh dikosongkan)'
+                    : `Contoh: ${formData.grade}-1 (Boleh dikosongkan)`}
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Jenjang Pendidikan</label>
+                <select
+                  required
+                  value={formData.education_level_id || ''}
+                  onChange={(e) => handleLevelChange(Number(e.target.value))}
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] bg-white"
+                >
+                  <option value="">-- Pilih Jenjang --</option>
+                  {levels.map((lvl) => (
+                    <option key={lvl.ID || lvl.id} value={lvl.ID || lvl.id}>
+                      {lvl.Name || lvl.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -280,17 +380,19 @@ export default function AdminClasses() {
                     onChange={(e) => setFormData({ ...formData, grade: Number(e.target.value) })}
                     className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D] bg-white"
                   >
-                    <option value={10}>10</option>
-                    <option value={11}>11</option>
-                    <option value={12}>12</option>
+                    {gradeOptions.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Jurusan</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Jurusan {!isSMK && <span className="text-gray-400 font-normal">(Opsional)</span>}
+                  </label>
                   <input
                     type="text"
-                    required
+                    required={isSMK}
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
                     placeholder="Contoh: DKV / PPLG"
@@ -326,6 +428,33 @@ export default function AdminClasses() {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Wali Kelas</label>
+                <select
+                  value={formData.homeroom_teacher_id}
+                  onChange={(e) => setFormData({ ...formData, homeroom_teacher_id: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs focus:border-[#1C4D8D] focus:outline-none"
+                >
+                  <option value="">-- Belum ditentukan --</option>
+                  {teachers.map((teacher) => (
+                    (() => {
+                      const teacherId = Number(teacher.ID || teacher.id);
+                      const assignedClass = classes.find((item) =>
+                        Number(item.HomeroomTeacherID || item.homeroom_teacher_id) === teacherId &&
+                        Number(item.ID || item.id) !== currentId
+                      );
+                      return <option key={teacherId} value={teacherId} disabled={Boolean(assignedClass)}>
+                      {teacher.User?.Name || teacher.user?.Name || teacher.Name || teacher.name || 'Guru'}
+                        {assignedClass ? ` — sudah menjadi wali ${assignedClass.Name || assignedClass.name}` : ''}
+                      </option>;
+                    })()
+                  ))}
+                </select>
+                <p className="mt-1 text-[10px] text-gray-400">Guru wali kelas dapat mengelola pengumuman dan diskusi kelas.</p>
+              </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran data kelas" resourceType="classes" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bell, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
 interface Announcement {
   id?: number;
@@ -26,6 +28,7 @@ export default function AdminAnnouncements() {
     content: '',
     target_role: 'Semua'
   });
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
   const fetchAnnouncements = async () => {
     try {
@@ -58,6 +61,8 @@ export default function AdminAnnouncements() {
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
+    setCurrentId(null);
+    setAttachmentFiles([]);
     setFormData({ title: '', content: '', target_role: 'Semua' });
     setIsModalOpen(true);
   };
@@ -65,6 +70,7 @@ export default function AdminAnnouncements() {
   const handleOpenEdit = (item: Announcement) => {
     setIsEditMode(true);
     setCurrentId(item.ID !== undefined ? item.ID : item.id!);
+    setAttachmentFiles([]);
     setFormData({
       title: item.Title || item.title || '',
       content: item.Content || item.content || '',
@@ -88,11 +94,10 @@ export default function AdminAnnouncements() {
         TargetRole: formData.target_role
       };
 
-      if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/announcements/${currentId}`, payload, { headers });
-      } else {
-        await axios.post('http://localhost:8080/api/announcements', payload, { headers });
-      }
+      let announcementId = currentId;
+      if (isEditMode) await axios.put(`http://localhost:8080/api/announcements/${currentId}`, payload, { headers });
+      else announcementId = responseRecordId(await axios.post('http://localhost:8080/api/announcements', payload, { headers }));
+      if (announcementId) await uploadAttachments('announcements', announcementId, attachmentFiles, headers);
 
       setIsModalOpen(false);
       fetchAnnouncements();
@@ -268,6 +273,8 @@ export default function AdminAnnouncements() {
                   className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#1C4D8D]"
                 />
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran pengumuman" resourceType="announcements" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button

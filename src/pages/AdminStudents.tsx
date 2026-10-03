@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff } from 'lucide-react';
+import FileDropzone from '../components/FileDropzone';
+import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([]);
@@ -18,6 +20,7 @@ export default function AdminStudents() {
   
   // State error per field
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
   const fetchStudents = async () => {
     try {
@@ -54,6 +57,7 @@ export default function AdminStudents() {
     setShowPassword(false);
     setFormErrors({});
     setFormData({ Name: '', Email: '', Password: '', NIS: '', Gender: 'Laki-laki', ClassID: '' });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
@@ -72,6 +76,7 @@ export default function AdminStudents() {
       Gender: student.gender || student.Gender || 'Laki-laki',
       ClassID: student.class_id || student.ClassID ? String(student.class_id || student.ClassID) : ''
     });
+    setAttachmentFiles([]);
     setIsModalOpen(true);
   };
 
@@ -96,11 +101,10 @@ export default function AdminStudents() {
         payload.password = formData.Password;
       }
 
-      if (isEditMode) {
-        await axios.put(`http://localhost:8080/api/students/${currentId}`, payload, { headers });
-      } else {
-        await axios.post('http://localhost:8080/api/students', payload, { headers });
-      }
+      let studentId = currentId;
+      if (isEditMode) await axios.put(`http://localhost:8080/api/students/${currentId}`, payload, { headers });
+      else studentId = responseRecordId(await axios.post('http://localhost:8080/api/students', payload, { headers }));
+      if (studentId) await uploadAttachments('students', studentId, attachmentFiles, headers);
 
       setIsModalOpen(false);
       fetchStudents();
@@ -323,6 +327,8 @@ export default function AdminStudents() {
                   <option value="Perempuan">Perempuan</option>
                 </select>
               </div>
+
+              <FileDropzone files={attachmentFiles} onChange={setAttachmentFiles} label="Lampiran data siswa" resourceType="students" resourceId={isEditMode ? currentId : null} />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition">

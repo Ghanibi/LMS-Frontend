@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -22,8 +24,23 @@ export default function Login() {
 
       const { token, user } = response.data;
 
-      if (user.Role !== 'ADMIN') {
-        setError('Akses ditolak! Halaman ini khusus untuk Admin.');
+      const role = String(user.Role || '').toUpperCase();
+      const roleRoutes: Record<string, string> = {
+        ADMIN: '/admin/dashboard',
+        TEACHER: '/teacher/dashboard',
+        GURU: '/teacher/dashboard',
+        STUDENT: '/student/dashboard',
+        SISWA: '/student/dashboard',
+        CURRICULUM: '/curriculum/dashboard',
+        KURIKULUM: '/curriculum/dashboard',
+        PRINCIPAL: '/principal/dashboard',
+        KEPSEK: '/principal/dashboard',
+        KEPALA_SEKOLAH: '/principal/dashboard',
+      };
+      const destination = roleRoutes[role];
+
+      if (!destination) {
+        setError(`Role akun (${user.Role || 'tidak diketahui'}) belum didukung.`);
         setLoading(false);
         return;
       }
@@ -31,10 +48,7 @@ export default function Login() {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      alert('Login berhasil! Selamat datang Admin.');
-      
-      // Refresh halaman agar App.jsx membaca token baru dan merender Dashboard
-      window.location.reload();
+      navigate(destination, { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.error || 'Terjadi kesalahan pada server');
       setLoading(false);
@@ -44,7 +58,10 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-md">
-        <h2 className="mb-6 text-center text-2xl font-bold text-gray-800">Admin Login - LMS SMK</h2>
+        <h2 className="mb-2 text-center text-2xl font-bold text-gray-800">Login LMS SMK</h2>
+        <p className="mb-6 text-center text-sm text-gray-500">
+          Satu akun untuk siswa, guru, kurikulum, dan kepala sekolah
+        </p>
         
         {error && (
           <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-600">
