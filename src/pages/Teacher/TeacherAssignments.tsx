@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { downloadProtectedFile } from '../../lib/downloadProtectedFile';
 import { Plus, Search, Trash2, Edit, X, Eye } from 'lucide-react';
 import FileDropzone from '../../components/FileDropzone';
 import { responseRecordId, uploadAttachments } from '../../lib/attachments';
@@ -188,7 +189,7 @@ export default function TeacherAssignments() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Tugas & Penilaian</h3>
           <p className="text-xs text-gray-400 mt-0.5">Kelola tugas dan nilai pengumpulan siswa untuk kelas yang Anda ampu.</p>
@@ -209,8 +210,8 @@ export default function TeacherAssignments() {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-xs">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <Search size={16} />
             </span>
@@ -334,7 +335,7 @@ export default function TeacherAssignments() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Batas Waktu</label>
                   <input
@@ -399,11 +400,11 @@ export default function TeacherAssignments() {
                       </div>
                       {s.SubmissionText && <p className="text-xs text-gray-600">{s.SubmissionText}</p>}
                       {s.FileURL && (
-                        <a href={s.FileURL} target="_blank" rel="noreferrer" className="text-xs text-[#1C4D8D] underline break-all">
-                          {s.FileURL}
-                        </a>
+                        <button type="button" onClick={() => downloadProtectedFile(s.FileURL!, `pengumpulan-${sid}`)} className="text-xs text-[#1C4D8D] underline break-all">
+                          Unduh lampiran siswa
+                        </button>
                       )}
-                      <div className="grid grid-cols-3 gap-2 pt-2">
+                      <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-3">
                         <input
                           type="number"
                           placeholder="Nilai"

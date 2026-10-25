@@ -144,7 +144,7 @@ export default function AdminStudents() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Manajemen Siswa</h3>
           <p className="text-xs text-gray-400 mt-0.5">Kelola data seluruh siswa terdaftar di sekolah (TypeScript).</p>
@@ -158,8 +158,8 @@ export default function AdminStudents() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-xs">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <Search size={16} />
             </span>

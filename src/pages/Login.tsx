@@ -27,6 +27,7 @@ export default function Login() {
       const role = String(user.Role || '').toUpperCase();
       const roleRoutes: Record<string, string> = {
         ADMIN: '/admin/dashboard',
+        SUPER_ADMIN: '/super-admin/dashboard',
         TEACHER: '/teacher/dashboard',
         GURU: '/teacher/dashboard',
         STUDENT: '/student/dashboard',

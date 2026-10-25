@@ -6,7 +6,9 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Menu,
   Users,
+  X,
 } from 'lucide-react';
 
 const menuItems = [
@@ -27,6 +29,7 @@ function getUser() {
 export default function TeacherLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   const user = getUser();
   const name = user.Name || user.name || 'Guru';
   const initials = name
@@ -42,7 +45,7 @@ export default function TeacherLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 font-sans">
+    <div className="flex h-dvh overflow-hidden bg-gray-50 font-sans">
       <aside className="hidden w-64 shrink-0 flex-col justify-between bg-[#0F294A] text-white shadow-md md:flex">
         <div>
           <div className="flex items-center gap-3 p-6">
@@ -90,16 +93,21 @@ export default function TeacherLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-20 flex h-16 shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4 shadow-sm sm:px-6">
-          <div className="w-full max-w-xs">
+        <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-3 shadow-sm sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button type="button" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-[#1C4D8D] md:hidden" aria-label={isMobileNavOpen ? 'Tutup menu' : 'Buka menu'}>
+              {isMobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+            </button>
+          <div className="w-full max-w-[190px] sm:max-w-xs">
             <input
               type="search"
               placeholder="Cari materi atau tugas..."
               className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs focus:border-[#1C4D8D] focus:outline-none"
             />
           </div>
+          </div>
 
-          <div className="ml-4 flex items-center gap-3 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => navigate('/teacher/assignments')}
@@ -120,7 +128,20 @@ export default function TeacherLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
+        {isMobileNavOpen && <>
+          <button type="button" aria-label="Tutup menu" onClick={() => setIsMobileNavOpen(false)} className="fixed inset-x-0 bottom-0 top-16 z-40 bg-black/35 md:hidden" />
+          <aside className="mobile-nav-enter fixed bottom-0 left-0 top-16 z-50 flex w-72 max-w-[85vw] flex-col justify-between overflow-y-auto bg-[#0F294A] text-white shadow-2xl md:hidden">
+            <div>
+              <div className="border-b border-white/10 px-5 py-4"><p className="text-sm font-bold">SIAS Guru</p><p className="mt-1 text-[10px] text-blue-100/55">Menu Guru</p></div>
+              <nav className="space-y-1 px-3 py-4">
+                {menuItems.map((item) => <button key={item.path} type="button" onClick={() => { setIsMobileNavOpen(false); navigate(item.path); }} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-xs font-medium transition ${location.pathname === item.path ? 'bg-[#1C4D8D] text-white' : 'text-gray-300 hover:bg-white/5'}`}>{item.icon}{item.name}</button>)}
+              </nav>
+            </div>
+            <button type="button" onClick={handleLogout} className="m-3 flex items-center gap-3 rounded-xl px-4 py-3 text-xs font-medium text-red-300 hover:bg-red-500/10"><LogOut size={18} /> Keluar</button>
+          </aside>
+        </>}
+
+        <main key={location.pathname} className="role-page-enter min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

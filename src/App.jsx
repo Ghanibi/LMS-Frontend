@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.tsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import TeacherLayout from './components/TeacherLayout.jsx';
+import StudentLayout from './components/StudentLayout.jsx';
 import DashboardHome from './pages/DashboardHome.tsx';
 import AdminStudents from './pages/AdminStudents.tsx';
 import AdminTeachers from './pages/AdminTeachers.tsx';
@@ -10,11 +11,25 @@ import AdminSubjects from './pages/AdminSubjects.tsx';
 import AdminClasses from './pages/AdminClasses.tsx';
 import AdminCalendar from './pages/AdminCalendar.tsx';
 import AdminAnnouncements from './pages/AdminAnnounchements.tsx';
+import AdminLeadershipAccounts from './pages/AdminLeadershipAccounts.tsx';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard.tsx';
 import TeacherMaterials from './pages/Teacher/TeacherMaterials.tsx';
 import TeacherAssignments from './pages/Teacher/TeacherAssignments.tsx';
 import ClassroomPage from './pages/ClassroomPage.tsx';
 import LandingPage from './pages/LandingPage.jsx';
+import StudentDashboard from './pages/Student/StudentDashboard.tsx';
+import StudentMaterials from './pages/Student/StudentMaterials.tsx';
+import StudentAssignments from './pages/Student/StudentAssignments.tsx';
+import StudentGrades from './pages/Student/StudentGrades.tsx';
+import StudentTimetable from './pages/Student/StudentTimetable.tsx';
+import LeadershipLayout from './components/LeadershipLayout.jsx';
+import LeadershipDashboard from './pages/Leadership/LeadershipDashboard.tsx';
+import CurriculumPlan from './pages/Leadership/CurriculumPlan.tsx';
+import CurriculumLearning from './pages/Leadership/CurriculumLearning.tsx';
+import LeadershipCalendar from './pages/Leadership/LeadershipCalendar.tsx';
+import PrincipalClasses from './pages/Leadership/PrincipalClasses.tsx';
+import AdminSuperAdminBootstrap from './pages/AdminSuperAdminBootstrap.tsx';
+import SuperAdminAccounts from './pages/SuperAdminAccounts.tsx';
 
 function getSession() {
   const token = localStorage.getItem('token');
@@ -31,8 +46,18 @@ function getSession() {
 
 function ProtectedAdminLayout() {
   const { token, role } = getSession();
-  if (!token || role !== 'ADMIN') return <Navigate to="/login" replace />;
+  if (!token || (role !== 'ADMIN' && role !== 'SUPER_ADMIN')) return <Navigate to="/login" replace />;
   return <AdminLayout />;
+}
+
+function AdminOnly({ children }) {
+  const { role } = getSession();
+  return role === 'ADMIN' ? children : <Navigate to="/super-admin/dashboard" replace />;
+}
+
+function SuperAdminOnly({ children }) {
+  const { role } = getSession();
+  return role === 'SUPER_ADMIN' ? children : <Navigate to="/admin/dashboard" replace />;
 }
 
 function ProtectedTeacherLayout() {
@@ -41,16 +66,25 @@ function ProtectedTeacherLayout() {
   return <TeacherLayout />;
 }
 
-function ProtectedStudentClassroom() {
+function ProtectedStudentLayout() {
   const { token, role } = getSession();
   if (!token || (role !== 'STUDENT' && role !== 'SISWA')) return <Navigate to="/login" replace />;
-  return <ClassroomPage />;
+  return <StudentLayout />;
+}
+
+function ProtectedLeadershipLayout() {
+  const { token, role } = getSession();
+  const curriculumRoles = ['CURRICULUM', 'KURIKULUM'];
+  const principalRoles = ['PRINCIPAL', 'KEPSEK', 'KEPALA_SEKOLAH'];
+  if (!token || (!curriculumRoles.includes(role) && !principalRoles.includes(role))) return <Navigate to="/login" replace />;
+  return <LeadershipLayout />;
 }
 
 function DefaultRedirect() {
   const { token, role } = getSession();
   if (!token) return <Navigate to="/login" replace />;
   if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  if (role === 'SUPER_ADMIN') return <Navigate to="/super-admin/dashboard" replace />;
   if (role === 'TEACHER') return <Navigate to="/teacher/dashboard" replace />;
   if (role === 'STUDENT' || role === 'SISWA') return <Navigate to="/student/dashboard" replace />;
   if (role === 'CURRICULUM' || role === 'KURIKULUM') return <Navigate to="/curriculum/dashboard" replace />;
@@ -65,32 +99,6 @@ function HomeRoute() {
   return token ? <DefaultRedirect /> : <LandingPage />;
 }
 
-function RolePortal({ roles, title, description }) {
-  const { token, role } = getSession();
-  if (!token || !roles.includes(role)) return <Navigate to="/login" replace />;
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-6">
-      <section className="w-full max-w-xl rounded-2xl bg-white p-8 shadow-sm">
-        <p className="text-sm font-medium text-indigo-600">LMS SMK</p>
-        <h1 className="mt-2 text-2xl font-bold text-gray-800">{title}</h1>
-        <p className="mt-3 text-gray-600">{description}</p>
-        <p className="mt-4 text-sm text-gray-500">Login sebagai: {role}</p>
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.clear();
-            window.location.assign('/login');
-          }}
-          className="mt-6 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          Keluar
-        </button>
-      </section>
-    </main>
-  );
-}
-
 export default function App() {
   return (
     <Routes>
@@ -100,10 +108,14 @@ export default function App() {
         <Route path="/admin/dashboard" element={<DashboardHome />} />
         <Route path="/admin/students" element={<AdminStudents />} />
         <Route path="/admin/teachers" element={<AdminTeachers />} />
+        <Route path="/admin/leadership-accounts" element={<AdminLeadershipAccounts />} />
+        <Route path="/admin/super-admin" element={<AdminOnly><AdminSuperAdminBootstrap /></AdminOnly>} />
         <Route path="/admin/subjects" element={<AdminSubjects />} />
         <Route path="/admin/classes" element={<AdminClasses />} />
         <Route path="/admin/calendar" element={<AdminCalendar />} />
         <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+        <Route path="/super-admin/dashboard" element={<SuperAdminOnly><DashboardHome /></SuperAdminOnly>} />
+        <Route path="/super-admin/accounts" element={<SuperAdminOnly><SuperAdminAccounts /></SuperAdminOnly>} />
       </Route>
 
       <Route element={<ProtectedTeacherLayout />}>
@@ -113,30 +125,26 @@ export default function App() {
         <Route path="/teacher/assignments" element={<TeacherAssignments />} />
       </Route>
 
-      <Route
-        path="/student/dashboard"
-        element={<ProtectedStudentClassroom />}
-      />
-      <Route
-        path="/curriculum/dashboard"
-        element={
-          <RolePortal
-            roles={['CURRICULUM', 'KURIKULUM']}
-            title="Portal Kurikulum"
-            description="Login kurikulum berhasil. Halaman fitur kurikulum belum tersedia."
-          />
-        }
-      />
-      <Route
-        path="/principal/dashboard"
-        element={
-          <RolePortal
-            roles={['PRINCIPAL', 'KEPSEK', 'KEPALA_SEKOLAH']}
-            title="Portal Kepala Sekolah"
-            description="Login kepala sekolah berhasil. Halaman fitur kepala sekolah belum tersedia."
-          />
-        }
-      />
+      <Route element={<ProtectedStudentLayout />}>
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/materials" element={<StudentMaterials />} />
+        <Route path="/student/assignments" element={<StudentAssignments />} />
+        <Route path="/student/grades" element={<StudentGrades />} />
+        <Route path="/student/timetable" element={<StudentTimetable />} />
+        <Route path="/student/classroom" element={<ClassroomPage />} />
+        <Route path="/student/*" element={<Navigate to="/student/dashboard" replace />} />
+      </Route>
+      <Route element={<ProtectedLeadershipLayout />}>
+        <Route path="/curriculum/dashboard" element={<LeadershipDashboard mode="curriculum" />} />
+        <Route path="/curriculum/plan" element={<CurriculumPlan />} />
+        <Route path="/curriculum/learning" element={<CurriculumLearning />} />
+        <Route path="/curriculum/calendar" element={<LeadershipCalendar mode="curriculum" />} />
+        <Route path="/curriculum/*" element={<Navigate to="/curriculum/dashboard" replace />} />
+        <Route path="/principal/dashboard" element={<LeadershipDashboard mode="principal" />} />
+        <Route path="/principal/classes" element={<PrincipalClasses />} />
+        <Route path="/principal/calendar" element={<LeadershipCalendar mode="principal" />} />
+        <Route path="/principal/*" element={<Navigate to="/principal/dashboard" replace />} />
+      </Route>
 
       <Route path="/" element={<HomeRoute />} />
       <Route path="*" element={<DefaultRedirect />} />

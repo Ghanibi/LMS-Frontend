@@ -3,6 +3,10 @@ import axios from 'axios';
 import { Users, GraduationCap, BookOpen, FileText, Award, Bell, Clock } from 'lucide-react';
 
 export default function DashboardHome() {
+  let currentUser: any = {};
+  try { currentUser = JSON.parse(localStorage.getItem('user') || 'null') || {}; } catch { currentUser = {}; }
+  const isSuperAdmin = String(currentUser.Role || '').toUpperCase() === 'SUPER_ADMIN';
+  const displayName = currentUser.Name || currentUser.name || (isSuperAdmin ? 'Super Admin' : 'Admin');
   const [stats, setStats] = useState({
     teachers: 0,
     students: 0,
@@ -54,8 +58,8 @@ export default function DashboardHome() {
     <div className="space-y-6">
       {/* Header sambutan */}
       <div>
-        <h3 className="text-xl font-bold text-gray-800">Dashboard</h3>
-        <p className="text-xs text-gray-400 mt-0.5">Selamat datang kembali, Admin. Berikut ringkasan aktivitas sekolah hari ini.</p>
+        <h3 className="text-xl font-bold text-gray-800">Halo, {displayName} 👋</h3>
+        <p className="text-xs text-gray-400 mt-0.5">Dashboard · Berikut ringkasan aktivitas sekolah hari ini.</p>
       </div>
 
       {/* Statistik Cards (Real-time data) */}

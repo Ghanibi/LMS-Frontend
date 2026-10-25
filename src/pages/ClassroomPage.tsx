@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { BookOpen, CalendarDays, MessageCircle, Plus, Send, Users } from 'lucide-react';
 
 interface Classroom {
@@ -63,7 +62,6 @@ function localDateValue() {
 }
 
 export default function ClassroomPage() {
-  const navigate = useNavigate();
   const role = (() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null')?.Role || ''; }
     catch { return ''; }
@@ -259,7 +257,6 @@ export default function ClassroomPage() {
         {classrooms.length > 1 && <select value={activeClassId || ''} onChange={(event) => setActiveClassId(Number(event.target.value))} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-[#1C4D8D] focus:outline-none">
           {classrooms.map((item) => <option key={item.ID} value={item.ID}>{item.Name}</option>)}
         </select>}
-        {!isTeacher && <button type="button" onClick={() => { localStorage.clear(); navigate('/login', { replace: true }); }} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">Keluar</button>}
       </div>
 
       {error && <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">{error}</div>}

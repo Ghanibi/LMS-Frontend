@@ -163,7 +163,7 @@ export default function AdminTeachers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Manajemen Guru</h3>
           <p className="mt-0.5 text-xs text-gray-400">Kelola data, bidang studi, dan penugasan kelas setiap guru.</p>
@@ -174,7 +174,7 @@ export default function AdminTeachers() {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 p-4">
+        <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full max-w-sm">
             <Search size={16} className="absolute inset-y-0 left-3 my-auto text-gray-400" />
             <input type="search" placeholder="Cari nama atau NIP..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-xs focus:border-[#1C4D8D] focus:outline-none" />
@@ -215,12 +215,12 @@ export default function AdminTeachers() {
       </div>
 
       {isModalOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-        <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="max-h-[90dvh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <div><h4 className="text-base font-bold text-gray-800">{isEditMode ? 'Edit Data Guru' : 'Tambah Guru Baru'}</h4><p className="mt-1 text-xs text-gray-400">Atur bidang studi dan pilih satu atau beberapa kelas.</p></div>
             <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X size={18} /></button>
           </div>
-          <form onSubmit={handleSubmit} className="max-h-[calc(90vh-72px)] space-y-5 overflow-y-auto p-6">
+          <form onSubmit={handleSubmit} className="max-h-[calc(90dvh-72px)] space-y-5 overflow-y-auto p-4 sm:p-6">
             {formErrors.General && <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-center text-xs text-red-600">{formErrors.General}</div>}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block text-xs font-semibold text-gray-600">Nama Lengkap

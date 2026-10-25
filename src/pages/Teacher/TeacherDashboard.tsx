@@ -3,6 +3,9 @@ import axios from 'axios';
 import { Layers, BookOpen, ClipboardList, AlertCircle } from 'lucide-react';
 
 export default function TeacherDashboard() {
+  let currentUser: any = {};
+  try { currentUser = JSON.parse(localStorage.getItem('user') || 'null') || {}; } catch { currentUser = {}; }
+  const displayName = currentUser.Name || currentUser.name || 'Guru';
   const [stats, setStats] = useState({ classes: 0, materials: 0, assignments: 0, ungraded: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -46,8 +49,8 @@ export default function TeacherDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-gray-800">Dashboard Guru</h3>
-        <p className="text-xs text-gray-400 mt-0.5">Ringkasan aktivitas mengajar Anda.</p>
+        <h3 className="text-xl font-bold text-gray-800">Halo, {displayName} 👋</h3>
+        <p className="text-xs text-gray-400 mt-0.5">Dashboard Guru · Ringkasan aktivitas mengajar Anda.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

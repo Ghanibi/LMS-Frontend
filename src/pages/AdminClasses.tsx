@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Home, Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import { Home, Plus, Search, Trash2, Edit, X, CalendarDays, GripVertical, Save, Loader2 } from 'lucide-react';
 import FileDropzone from '../components/FileDropzone';
 import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
@@ -51,6 +51,7 @@ export default function AdminClasses() {
     homeroom_teacher_id: ''
   });
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [scheduleClass, setScheduleClass] = useState<SchoolClass | null>(null);
 
   // Jenjang yang sedang dipilih di form
   const selectedLevel = levels.find(l => (l.ID || l.id) === formData.education_level_id);
@@ -226,7 +227,7 @@ export default function AdminClasses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Manajemen Kelas</h3>
           <p className="text-xs text-gray-400 mt-0.5">Kelola tingkat, jurusan, dan kelompok kelas sekolah (TypeScript).</p>
@@ -240,8 +241,8 @@ export default function AdminClasses() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-xs">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <Search size={16} />
             </span>
@@ -304,6 +305,13 @@ export default function AdminClasses() {
                       </td>
                       <td className="py-3.5 px-6 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => setScheduleClass(cls)}
+                            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
+                            title="Atur jadwal pelajaran"
+                          >
+                            <CalendarDays size={14} />
+                          </button>
                           <button 
                             onClick={() => handleOpenEdit(cls)}
                             className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" 
@@ -372,7 +380,7 @@ export default function AdminClasses() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Tingkat Kelas</label>
                   <select
@@ -401,7 +409,7 @@ export default function AdminClasses() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Nomor / Urutan Kelas</label>
                   <input
@@ -475,6 +483,89 @@ export default function AdminClasses() {
           </div>
         </div>
       )}
+      {scheduleClass && <ClassScheduleEditor schoolClass={scheduleClass} onClose={() => setScheduleClass(null)} />}
     </div>
   );
+}
+
+const DAYS = [
+  { key: 'MONDAY', label: 'Senin' }, { key: 'TUESDAY', label: 'Selasa' },
+  { key: 'WEDNESDAY', label: 'Rabu' }, { key: 'THURSDAY', label: 'Kamis' }, { key: 'FRIDAY', label: 'Jumat' },
+];
+const SLOTS = [
+  ['06:30','07:10'], ['07:10','07:50'], ['07:50','08:30'], ['08:30','09:10'],
+  ['09:40','10:15'], ['10:15','10:50'], ['10:50','11:25'], ['11:25','12:00'],
+  ['12:40','13:20'], ['13:20','14:00'], ['14:00','14:40'],
+];
+
+function ClassScheduleEditor({ schoolClass, onClose }: { schoolClass: SchoolClass; onClose: () => void }) {
+  const classId = Number(schoolClass.ID || schoolClass.id);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [draggedSubject, setDraggedSubject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}` };
+  const nameOf = (item: any) => item.Name || item.name || '';
+  const idOf = (item: any) => Number(item.ID || item.id);
+
+  React.useEffect(() => {
+    Promise.all([
+      axios.get('http://localhost:8080/api/subjects', { headers }),
+      axios.get('http://localhost:8080/api/teachers', { headers }),
+      axios.get(`http://localhost:8080/api/classes/${classId}/schedule`, { headers }),
+    ]).then(([subjectRes, teacherRes, scheduleRes]) => {
+      setSubjects(subjectRes.data.data || subjectRes.data || []);
+      setTeachers(teacherRes.data.data || teacherRes.data || []);
+      setEntries(scheduleRes.data.data || []);
+    }).catch((err: any) => setError(err.response?.data?.error || 'Data jadwal gagal dimuat.'))
+      .finally(() => setLoading(false));
+  }, [classId]);
+
+  const slot = (day: string, period: number) => entries.find((item) => item.day === day && Number(item.period) === period);
+  const placeSubject = (day: string, period: number, subject: any) => {
+    const current = slot(day, period);
+    const start = day === 'FRIDAY' ? [['06:30','07:15'],['07:15','08:00'],['08:00','08:45'],['09:15','10:00'],['10:00','10:45'],['10:45','11:30']][period-1] : SLOTS[period-1];
+    if (!start) return;
+    const end = day === 'FRIDAY' ? [['06:30','07:15'],['07:15','08:00'],['08:00','08:45'],['09:15','10:00'],['10:00','10:45'],['10:45','11:30']][period-1] : SLOTS[period-1];
+    setEntries((prev) => [...prev.filter((item) => !(item.day === day && Number(item.period) === period)), {
+      day, period, start_time: start[0], end_time: end[1], subject_id: idOf(subject), subject,
+      teacher_id: current?.teacher_id || null, teacher: current?.teacher || null,
+        teacher_code: current?.teacher_code || current?.TeacherCode || 0,
+        teacher_name: current?.teacher_name || current?.TeacherName || '',
+        teacher_field: current?.teacher_field || current?.TeacherField || '',
+        subject_suggestion: '', needs_review: false,
+    }]);
+  };
+  const save = async () => {
+    setSaving(true); setError('');
+    try {
+      const response = await axios.put(`http://localhost:8080/api/classes/${classId}/schedule`, entries.map((item) => ({
+        day: item.day, period: item.period, start_time: item.start_time, end_time: item.end_time,
+        subject_id: Number(item.subject_id || item.SubjectID || 0), teacher_id: item.teacher_id ? Number(item.teacher_id) : null,
+        teacher_code: Number(item.teacher_code || item.TeacherCode || 0), teacher_name: item.teacher_name || item.TeacherName || '',
+        teacher_field: item.teacher_field || item.TeacherField || '', subject_suggestion: item.subject_suggestion || item.SubjectSuggestion || '',
+      })), { headers });
+      setEntries(response.data.data || []); onClose();
+    } catch (err: any) { setError(err.response?.data?.error || 'Jadwal gagal disimpan.'); }
+    finally { setSaving(false); }
+  };
+
+  return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-6">
+    <section className="flex max-h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <header className="flex items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6"><div><h2 className="font-bold text-gray-800">Jadwal Pelajaran · {nameOf(schoolClass)}</h2><p className="mt-1 text-xs text-gray-500">Tarik mata pelajaran ke jam yang sesuai. Semua siswa di kelas ini memakai jadwal yang sama.</p></div><button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100" aria-label="Tutup"><X size={18}/></button></header>
+      {error && <p role="alert" className="mx-5 mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 sm:mx-6">{error}</p>}
+      {loading ? <div className="p-10 text-center text-sm text-gray-500"><Loader2 className="mx-auto mb-2 animate-spin"/>Memuat jadwal dan data mapel...</div> : <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[220px_minmax(0,1fr)] sm:p-6">
+        <aside className="rounded-xl border border-gray-100 bg-gray-50 p-3"><h3 className="mb-1 text-sm font-bold text-gray-800">Mata pelajaran</h3><p className="mb-3 text-[11px] text-gray-500">Seret mapel ke slot jadwal.</p><div className="flex gap-2 overflow-x-auto pb-2 lg:max-h-[60vh] lg:flex-col lg:overflow-y-auto">{subjects.map((subject) => <button draggable onDragStart={() => setDraggedSubject(subject)} onDragEnd={() => setDraggedSubject(null)} key={idOf(subject)} className="flex shrink-0 cursor-grab items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2 text-left text-xs font-semibold text-[#1C4D8D] active:cursor-grabbing"><GripVertical size={14}/>{nameOf(subject)}</button>)}</div></aside>
+        <div className="space-y-4">{DAYS.map((day) => <section key={day.key} className="overflow-hidden rounded-xl border border-gray-100"><h3 className="bg-[#0F294A] px-4 py-2 text-sm font-semibold text-white">{day.label}</h3><div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3">{Array.from({ length: day.key === 'FRIDAY' ? 6 : 11 }, (_, index) => index + 1).map((period) => {
+          const item = slot(day.key, period); const times = day.key === 'FRIDAY' ? [['06:30','07:15'],['07:15','08:00'],['08:00','08:45'],['09:15','10:00'],['10:00','10:45'],['10:45','11:30']][period-1] : SLOTS[period-1];
+          return <div key={`${day.key}-${period}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedSubject) placeSubject(day.key, period, draggedSubject); setDraggedSubject(null); }} className={`min-h-24 rounded-xl border border-dashed p-3 transition ${item ? item.needs_review || item.NeedsReview ? 'border-amber-200 bg-amber-50/70' : 'border-blue-200 bg-blue-50/70' : 'border-gray-200 bg-gray-50 hover:border-[#1C4D8D] hover:bg-blue-50'}`}><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-bold text-gray-500">Jam ke-{period}</p><p className="text-[10px] text-gray-400">{times?.[0]}–{times?.[1]}</p></div>{item ? <><div className="mt-2 flex items-start justify-between gap-2"><div><p className="text-xs font-bold text-[#0F294A]">{item.subject?.Name || item.Subject?.Name || subjects.find((s) => idOf(s) === Number(item.subject_id || item.SubjectID))?.Name || 'Mapel perlu dikonfirmasi'}</p>{(item.subject_suggestion || item.SubjectSuggestion) && <p className="mt-0.5 text-[10px] text-amber-700">Saran: {item.subject_suggestion || item.SubjectSuggestion}</p>}</div><button onClick={() => setEntries((prev) => prev.filter((entry) => !(entry.day === day.key && Number(entry.period) === period)))} className="text-[10px] text-red-500">Hapus</button></div><p className="mt-1 text-[10px] text-gray-500">{item.teacher_name || item.TeacherName || item.teacher?.User?.Name || item.Teacher?.User?.Name || 'Guru belum ditentukan'}{(item.teacher_code || item.TeacherCode) ? ` · Kode ${item.teacher_code || item.TeacherCode}` : ''}</p><select value={item.teacher_id || ''} onChange={(event) => { const selected = teachers.find((teacher) => idOf(teacher) === Number(event.target.value)); setEntries((prev) => prev.map((entry) => entry === item ? { ...entry, teacher_id: event.target.value ? Number(event.target.value) : null, teacher_name: selected?.User?.Name || selected?.user?.Name || entry.teacher_name || '' } : entry)); }} className="mt-2 w-full rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-[11px] text-gray-600"><option value="">Pilih guru (opsional)</option>{teachers.map((teacher) => <option key={idOf(teacher)} value={idOf(teacher)}>{teacher.User?.Name || teacher.user?.Name || teacher.name || `Guru ${idOf(teacher)}`}</option>)}</select>{(item.needs_review || item.NeedsReview) && <span className="mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-800">Perlu konfirmasi mapel</span>}</> : <p className="mt-3 text-[11px] text-gray-400">Lepas mapel di sini</p>}</div>;
+        })}</div></section>)}</div>
+      </div>}
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 sm:px-6"><p className="text-[11px] text-gray-400">Jumat mengikuti slot waktu yang lebih singkat.</p><div className="flex gap-2"><button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100">Batal</button><button onClick={save} disabled={loading || saving} className="inline-flex items-center gap-2 rounded-xl bg-[#1C4D8D] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Save size={15}/>{saving ? 'Menyimpan...' : 'Simpan Jadwal'}</button></div></footer>
+    </section>
+  </div>;
 }
