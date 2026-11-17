@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { FileText, UploadCloud, X } from 'lucide-react';
+import { backendUrl } from '../lib/api';
 
 interface FileDropzoneProps {
   files: File[];
@@ -17,7 +18,7 @@ export default function FileDropzone({ files, onChange, label = 'Lampiran file',
 
   useEffect(() => {
     if (!resourceType || !resourceId) { setSavedFiles([]); return; }
-    axios.get(`http://localhost:8080/api/attachments/${resourceType}/${resourceId}`, {
+    axios.get(`/api/attachments/${resourceType}/${resourceId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     }).then((response) => setSavedFiles(response.data.data || []))
       .catch(() => setSavedFiles([]));
@@ -71,7 +72,7 @@ export default function FileDropzone({ files, onChange, label = 'Lampiran file',
         <ul className="space-y-1.5">
           {savedFiles.map((file) => <li key={file.ID} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs">
             <FileText size={14} className="shrink-0 text-[#1C4D8D]" />
-            <a href={`http://localhost:8080${file.FileURL}`} target="_blank" rel="noreferrer" className="truncate text-[#1C4D8D] hover:underline">{file.FileName}</a>
+            <a href={backendUrl(file.FileURL)} target="_blank" rel="noreferrer" className="truncate text-[#1C4D8D] hover:underline">{file.FileName}</a>
           </li>)}
         </ul>
       </div>}

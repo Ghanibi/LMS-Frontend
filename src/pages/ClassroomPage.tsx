@@ -49,7 +49,7 @@ interface HomeroomNote {
   CreatedAt: string;
 }
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 function formatDate(value: string) {

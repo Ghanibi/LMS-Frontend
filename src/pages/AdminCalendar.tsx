@@ -37,7 +37,7 @@ export default function AdminCalendar() {
   const fetchEvents = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/calendars', {
+      const response = await axios.get('/api/calendars', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -99,8 +99,8 @@ export default function AdminCalendar() {
       };
 
       let calendarId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/calendars/${currentId}`, payload, { headers });
-      else calendarId = responseRecordId(await axios.post('http://localhost:8080/api/calendars', payload, { headers }));
+      if (isEditMode) await axios.put(`/api/calendars/${currentId}`, payload, { headers });
+      else calendarId = responseRecordId(await axios.post('/api/calendars', payload, { headers }));
       if (calendarId) await uploadAttachments('calendars', calendarId, attachmentFiles, headers);
 
       setIsModalOpen(false);
@@ -116,7 +116,7 @@ export default function AdminCalendar() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus agenda ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/calendars/${id}`, {
+      await axios.delete(`/api/calendars/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchEvents();

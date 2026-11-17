@@ -62,7 +62,7 @@ export default function AdminClasses() {
   const fetchClasses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/classes', {
+      const response = await axios.get('/api/classes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -85,7 +85,7 @@ export default function AdminClasses() {
   const fetchLevels = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/education-levels', {
+      const response = await axios.get('/api/education-levels', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const resData = response.data;
@@ -104,7 +104,7 @@ export default function AdminClasses() {
 
   const fetchTeachers = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/teachers', {
+      const response = await axios.get('/api/teachers', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setTeachers(response.data.data || response.data || []);
@@ -192,8 +192,8 @@ export default function AdminClasses() {
       };
 
       let classId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/classes/${currentId}`, payload, { headers });
-      else classId = responseRecordId(await axios.post('http://localhost:8080/api/classes', payload, { headers }));
+      if (isEditMode) await axios.put(`/api/classes/${currentId}`, payload, { headers });
+      else classId = responseRecordId(await axios.post('/api/classes', payload, { headers }));
       if (classId) await uploadAttachments('classes', classId, attachmentFiles, headers);
 
       setIsModalOpen(false);
@@ -209,7 +209,7 @@ export default function AdminClasses() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus kelas ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/classes/${id}`, {
+      await axios.delete(`/api/classes/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchClasses();
@@ -514,9 +514,9 @@ function ClassScheduleEditor({ schoolClass, onClose }: { schoolClass: SchoolClas
 
   React.useEffect(() => {
     Promise.all([
-      axios.get('http://localhost:8080/api/subjects', { headers }),
-      axios.get('http://localhost:8080/api/teachers', { headers }),
-      axios.get(`http://localhost:8080/api/classes/${classId}/schedule`, { headers }),
+      axios.get('/api/subjects', { headers }),
+      axios.get('/api/teachers', { headers }),
+      axios.get(`/api/classes/${classId}/schedule`, { headers }),
     ]).then(([subjectRes, teacherRes, scheduleRes]) => {
       setSubjects(subjectRes.data.data || subjectRes.data || []);
       setTeachers(teacherRes.data.data || teacherRes.data || []);
@@ -543,7 +543,7 @@ function ClassScheduleEditor({ schoolClass, onClose }: { schoolClass: SchoolClas
   const save = async () => {
     setSaving(true); setError('');
     try {
-      const response = await axios.put(`http://localhost:8080/api/classes/${classId}/schedule`, entries.map((item) => ({
+      const response = await axios.put(`/api/classes/${classId}/schedule`, entries.map((item) => ({
         day: item.day, period: item.period, start_time: item.start_time, end_time: item.end_time,
         subject_id: Number(item.subject_id || item.SubjectID || 0), teacher_id: item.teacher_id ? Number(item.teacher_id) : null,
         teacher_code: Number(item.teacher_code || item.TeacherCode || 0), teacher_name: item.teacher_name || item.TeacherName || '',

@@ -50,7 +50,7 @@ export default function AdminLayout() {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { setPasswordError('Konfirmasi password baru belum sama.'); return; }
     setPasswordSaving(true);
     try {
-      await axios.post('http://localhost:8080/api/auth/change-password', {
+      await axios.post('/api/auth/change-password', {
         current_password: passwordForm.currentPassword,
         new_password: passwordForm.newPassword,
       }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });

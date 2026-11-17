@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { KeyRound, Pencil, Plus, Search, Shield, Trash2, UserRound, X } from 'lucide-react';
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 interface AdminAccount { ID: number; Name: string; Email: string; }
 const emptyForm = { name: '', email: '', password: '' };
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });

@@ -31,7 +31,7 @@ export default function AdminSubjects() {
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/subjects', {
+      const response = await axios.get('/api/subjects', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -90,8 +90,8 @@ export default function AdminSubjects() {
       };
 
       let subjectId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/subjects/${currentId}`, payload, { headers });
-      else subjectId = responseRecordId(await axios.post('http://localhost:8080/api/subjects', payload, { headers }));
+      if (isEditMode) await axios.put(`/api/subjects/${currentId}`, payload, { headers });
+      else subjectId = responseRecordId(await axios.post('/api/subjects', payload, { headers }));
       if (subjectId) await uploadAttachments('subjects', subjectId, attachmentFiles, headers);
 
       setIsModalOpen(false);
@@ -107,7 +107,7 @@ export default function AdminSubjects() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/subjects/${id}`, {
+      await axios.delete(`/api/subjects/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchSubjects();

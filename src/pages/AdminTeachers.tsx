@@ -4,7 +4,7 @@ import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff, Check, Upload, FileS
 import FileDropzone from '../components/FileDropzone';
 import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 const idOf = (item: any) => Number(item?.ID ?? item?.id ?? 0);
 const nameOf = (item: any) => item?.Name ?? item?.name ?? '';
 
@@ -51,7 +51,7 @@ export default function AdminTeachers() {
       const status = error.response?.status;
       const message = error.response?.data?.error;
       if (!error.response) {
-        setImportMessage('Backend SIAS tidak tersambung. Pastikan MySQL aktif dan backend berjalan di localhost:8080, lalu coba impor lagi.');
+        setImportMessage('Backend SIAS tidak tersambung. Pastikan layanan API aktif, lalu coba impor lagi.');
       } else if (status === 404) {
         setImportMessage('Endpoint impor belum tersedia di backend. Restart backend dengan versi kode terbaru, lalu coba lagi.');
       } else {

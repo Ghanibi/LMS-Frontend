@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 export function useLeadershipOverview() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

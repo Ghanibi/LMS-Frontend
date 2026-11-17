@@ -33,7 +33,7 @@ export default function AdminAnnouncements() {
   const fetchAnnouncements = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/announcements', {
+      const response = await axios.get('/api/announcements', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -95,8 +95,8 @@ export default function AdminAnnouncements() {
       };
 
       let announcementId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/announcements/${currentId}`, payload, { headers });
-      else announcementId = responseRecordId(await axios.post('http://localhost:8080/api/announcements', payload, { headers }));
+      if (isEditMode) await axios.put(`/api/announcements/${currentId}`, payload, { headers });
+      else announcementId = responseRecordId(await axios.post('/api/announcements', payload, { headers }));
       if (announcementId) await uploadAttachments('announcements', announcementId, attachmentFiles, headers);
 
       setIsModalOpen(false);
@@ -112,7 +112,7 @@ export default function AdminAnnouncements() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus pengumuman ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/announcements/${id}`, {
+      await axios.delete(`/api/announcements/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchAnnouncements();

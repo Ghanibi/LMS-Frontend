@@ -24,7 +24,7 @@ export default function DashboardHome() {
         const headers = { Authorization: `Bearer ${token}` };
 
         // Mengambil data secara paralel untuk performa lebih cepat
-        const response = await axios.get('http://localhost:8080/api/dashboard/stats', { headers });
+        const response = await axios.get('/api/dashboard/stats', { headers });
         const data = response.data?.data || {};
         setStats({
           teachers: Number(data.teachers || 0),

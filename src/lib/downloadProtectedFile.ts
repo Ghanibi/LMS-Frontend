@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 export async function downloadProtectedFile(fileUrl: string, fileName: string) {
-  const url = fileUrl.startsWith('http') ? fileUrl : `http://localhost:8080${fileUrl}`;
-  const response = await axios.get(url, {
+  const response = await axios.get(fileUrl, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     responseType: 'blob',
   });

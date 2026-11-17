@@ -25,7 +25,7 @@ export default function AdminStudents() {
   const fetchStudents = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/students', {
+      const response = await axios.get('/api/students', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStudents(response.data.data || response.data || []);
@@ -39,7 +39,7 @@ export default function AdminStudents() {
   const fetchClasses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/classes', {
+      const response = await axios.get('/api/classes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClassesList(response.data.data || response.data || []);
@@ -102,8 +102,8 @@ export default function AdminStudents() {
       }
 
       let studentId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/students/${currentId}`, payload, { headers });
-      else studentId = responseRecordId(await axios.post('http://localhost:8080/api/students', payload, { headers }));
+      if (isEditMode) await axios.put(`/api/students/${currentId}`, payload, { headers });
+      else studentId = responseRecordId(await axios.post('/api/students', payload, { headers }));
       if (studentId) await uploadAttachments('students', studentId, attachmentFiles, headers);
 
       setIsModalOpen(false);
@@ -129,7 +129,7 @@ export default function AdminStudents() {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data siswa ini?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/students/${id}`, {
+      await axios.delete(`/api/students/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchStudents();

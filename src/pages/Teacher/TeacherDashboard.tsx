@@ -14,10 +14,10 @@ export default function TeacherDashboard() {
       try {
         const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
         const [classesRes, materialsRes, assignmentsRes, submissionsRes] = await Promise.all([
-          axios.get('http://localhost:8080/api/teacher/me/classes', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:8080/api/materials', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:8080/api/assignments', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:8080/api/submissions', { headers }).catch(() => ({ data: [] })),
+          axios.get('/api/teacher/me/classes', { headers }).catch(() => ({ data: [] })),
+          axios.get('/api/materials', { headers }).catch(() => ({ data: [] })),
+          axios.get('/api/assignments', { headers }).catch(() => ({ data: [] })),
+          axios.get('/api/submissions', { headers }).catch(() => ({ data: [] })),
         ]);
 
         const getLen = (res: any) => {

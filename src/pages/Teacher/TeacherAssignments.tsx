@@ -62,7 +62,7 @@ export default function TeacherAssignments() {
 
   const fetchAssignments = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/assignments', { headers: headers() });
+      const res = await axios.get('/api/assignments', { headers: headers() });
       setAssignments(res.data.data || res.data || []);
     } catch (err) {
       setAssignments([]);
@@ -73,7 +73,7 @@ export default function TeacherAssignments() {
 
   const fetchMyClasses = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/teacher/me/classes', { headers: headers() });
+      const res = await axios.get('/api/teacher/me/classes', { headers: headers() });
       setMyClasses(res.data.data || res.data || []);
     } catch (err) {
       setMyClasses([]);
@@ -122,8 +122,8 @@ export default function TeacherAssignments() {
       };
 
       let assignmentId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/assignments/${currentId}`, payload, { headers: headers() });
-      else assignmentId = responseRecordId(await axios.post('http://localhost:8080/api/assignments', payload, { headers: headers() }));
+      if (isEditMode) await axios.put(`/api/assignments/${currentId}`, payload, { headers: headers() });
+      else assignmentId = responseRecordId(await axios.post('/api/assignments', payload, { headers: headers() }));
       if (assignmentId) await uploadAttachments('assignments', assignmentId, attachmentFiles, headers());
 
       setIsModalOpen(false);
@@ -136,7 +136,7 @@ export default function TeacherAssignments() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Hapus tugas ini? Semua pengumpulan terkait juga akan hilang.')) return;
     try {
-      await axios.delete(`http://localhost:8080/api/assignments/${id}`, { headers: headers() });
+      await axios.delete(`/api/assignments/${id}`, { headers: headers() });
       fetchAssignments();
     } catch (err) {
       alert('Gagal menghapus tugas.');
@@ -147,7 +147,7 @@ export default function TeacherAssignments() {
     setActiveAssignment(a);
     setIsGradeModalOpen(true);
     try {
-      const res = await axios.get('http://localhost:8080/api/submissions', { headers: headers() });
+      const res = await axios.get('/api/submissions', { headers: headers() });
       const all: SubmissionItem[] = res.data.data || res.data || [];
       const aid = a.ID || a.id;
       const filteredSubs = all.filter(s => s.AssignmentID === aid);
@@ -174,7 +174,7 @@ export default function TeacherAssignments() {
       return;
     }
     try {
-      await axios.put(`http://localhost:8080/api/submissions/${submissionId}/grade`, {
+      await axios.put(`/api/submissions/${submissionId}/grade`, {
         score: Number(input.score),
         feedback: input.feedback
       }, { headers: headers() });

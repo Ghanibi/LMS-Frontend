@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { KeyRound, Pencil, Plus, Search, ShieldCheck, Trash2, UserRound, X } from 'lucide-react';
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 type AccountRole = 'CURRICULUM' | 'PRINCIPAL';
 interface Account { ID: number; Name: string; Email: string; Role: AccountRole; CreatedAt?: string; }
 const emptyForm = { Name: '', Email: '', Password: '', Role: 'CURRICULUM' as AccountRole };

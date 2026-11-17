@@ -45,7 +45,7 @@ export default function TeacherMaterials() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/materials', { headers: headers() });
+      const res = await axios.get('/api/materials', { headers: headers() });
       setMaterials(res.data.data || res.data || []);
     } catch (err) {
       setMaterials([]);
@@ -56,7 +56,7 @@ export default function TeacherMaterials() {
 
   const fetchMyClasses = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/teacher/me/classes', { headers: headers() });
+      const res = await axios.get('/api/teacher/me/classes', { headers: headers() });
       setMyClasses(res.data.data || res.data || []);
     } catch (err) {
       setMyClasses([]);
@@ -103,8 +103,8 @@ export default function TeacherMaterials() {
       };
 
       let materialId = currentId;
-      if (isEditMode) await axios.put(`http://localhost:8080/api/materials/${currentId}`, payload, { headers: headers() });
-      else materialId = responseRecordId(await axios.post('http://localhost:8080/api/materials', payload, { headers: headers() }));
+      if (isEditMode) await axios.put(`/api/materials/${currentId}`, payload, { headers: headers() });
+      else materialId = responseRecordId(await axios.post('/api/materials', payload, { headers: headers() }));
       if (materialId) await uploadAttachments('materials', materialId, attachmentFiles, headers());
 
       setIsModalOpen(false);
@@ -117,7 +117,7 @@ export default function TeacherMaterials() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Hapus materi ini?')) return;
     try {
-      await axios.delete(`http://localhost:8080/api/materials/${id}`, { headers: headers() });
+      await axios.delete(`/api/materials/${id}`, { headers: headers() });
       fetchMaterials();
     } catch (err) {
       alert('Gagal menghapus materi.');

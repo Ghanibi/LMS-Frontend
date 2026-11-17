@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import axios from 'axios';
 
-export const STUDENT_API = 'http://localhost:8080/api';
+export const STUDENT_API = '/api';
 export const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 export function useStudentLearning() {

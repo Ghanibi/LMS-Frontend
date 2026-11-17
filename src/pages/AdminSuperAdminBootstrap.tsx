@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 
-const API = 'http://localhost:8080/api';
+const API = '/api';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 export default function AdminSuperAdminBootstrap() {
