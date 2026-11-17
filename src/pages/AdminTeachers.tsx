@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff, Check } from 'lucide-react';
+import { Users, Plus, Search, Trash2, Edit, X, Eye, EyeOff, Check, Upload, FileSpreadsheet } from 'lucide-react';
 import FileDropzone from '../components/FileDropzone';
 import { responseRecordId, uploadAttachments } from '../lib/attachments';
 
@@ -33,7 +33,32 @@ export default function AdminTeachers() {
   const [formData, setFormData] = useState(emptyForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
+  const [draggingCSV, setDraggingCSV] = useState(false);
   const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+  const importTeachers = async (file?: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) { setImportMessage('Pilih file dengan format .csv.'); return; }
+    setImporting(true); setImportMessage('');
+    const body = new FormData(); body.append('file', file);
+    try {
+      const response = await axios.post(`${API}/teachers/import`, body, { headers: headers() });
+      setImportMessage(response.data.message || 'Data guru berhasil diimpor.');
+      await fetchAdminData();
+    } catch (error: any) {
+      const status = error.response?.status;
+      const message = error.response?.data?.error;
+      if (!error.response) {
+        setImportMessage('Backend SIAS tidak tersambung. Pastikan MySQL aktif dan backend berjalan di localhost:8080, lalu coba impor lagi.');
+      } else if (status === 404) {
+        setImportMessage('Endpoint impor belum tersedia di backend. Restart backend dengan versi kode terbaru, lalu coba lagi.');
+      } else {
+        setImportMessage(message || `Impor gagal (HTTP ${status || 'tidak diketahui'}). Periksa format CSV dan log backend.`);
+      }
+    } finally { setImporting(false); }
+  };
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -158,7 +183,7 @@ export default function AdminTeachers() {
   const filteredTeachers = teachers.filter((teacher) => {
     const name = teacher.user?.Name || teacher.user?.name || teacher.Name || '';
     const nip = teacher.nip || teacher.NIP || '';
-    return `${name} ${nip}`.toLowerCase().includes(search.toLowerCase());
+    return `${name} ${nip} ${teacher.code || teacher.Code || ''}`.toLowerCase().includes(search.toLowerCase());
   });
 
   return (
@@ -168,39 +193,56 @@ export default function AdminTeachers() {
           <h3 className="text-xl font-bold text-gray-800">Manajemen Guru</h3>
           <p className="mt-0.5 text-xs text-gray-400">Kelola data, bidang studi, dan penugasan kelas setiap guru.</p>
         </div>
-        <button type="button" onClick={handleOpenAdd} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#1C4D8D] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1C4D8D]/90">
-          <Plus size={18} /> Tambah Guru
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => document.getElementById('teacher-csv-upload')?.click()} disabled={importing} className="flex shrink-0 items-center gap-2 rounded-xl border border-[#1C4D8D] bg-white px-4 py-2 text-sm font-medium text-[#1C4D8D] shadow-sm transition hover:bg-blue-50 disabled:opacity-50">
+            <Upload size={17} /> {importing ? 'Mengimpor...' : 'Import CSV'}
+          </button>
+          <input id="teacher-csv-upload" type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { void importTeachers(event.target.files?.[0]); event.currentTarget.value = ''; }} />
+          <button type="button" onClick={handleOpenAdd} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#1C4D8D] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1C4D8D]/90">
+            <Plus size={18} /> Tambah Guru
+          </button>
+        </div>
+      </div>
+
+      <div onDragOver={(event) => { event.preventDefault(); setDraggingCSV(true); }} onDragLeave={() => setDraggingCSV(false)} onDrop={(event) => { event.preventDefault(); setDraggingCSV(false); void importTeachers(event.dataTransfer.files?.[0]); }} className={`rounded-2xl border-2 border-dashed p-4 transition ${draggingCSV ? 'border-[#1C4D8D] bg-blue-50' : 'border-gray-200 bg-white'}`}>
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-blue-50 p-2 text-[#1C4D8D]"><FileSpreadsheet size={18} /></span>
+          <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-gray-700">Import data guru dari CSV</p><p className="mt-1 text-xs leading-5 text-gray-500">Drop file CSV di sini atau klik Import CSV. Seluruh baris diproses sekaligus; jika ada data bentrok, tidak ada akun yang disimpan.</p>
+            <a href="/templates/format_import_guru.csv" download className="mt-1 inline-block text-xs font-semibold text-[#1C4D8D] hover:underline">Unduh format CSV kosong</a>
+            {importMessage && <p className={`mt-2 text-xs font-semibold ${['gagal','tidak','duplikat','sudah','wajib','maksimal','harus','dibatalkan','bentrok'].some((word) => importMessage.toLowerCase().includes(word)) ? 'text-red-600' : 'text-emerald-700'}`}>{importMessage}</p>}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full max-w-sm">
             <Search size={16} className="absolute inset-y-0 left-3 my-auto text-gray-400" />
-            <input type="search" placeholder="Cari nama atau NIP..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-xs focus:border-[#1C4D8D] focus:outline-none" />
+            <input type="search" placeholder="Cari nama, kode guru, atau NIP..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-xs focus:border-[#1C4D8D] focus:outline-none" />
           </div>
           <span className="shrink-0 text-xs font-medium text-gray-400">Total: {teachers.length} Guru</span>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-max border-collapse text-left">
             <thead><tr className="border-b border-gray-100 bg-gray-50 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-              <th className="whitespace-nowrap px-6 py-3">No</th><th className="whitespace-nowrap px-6 py-3">Nama Lengkap</th>
+              <th className="whitespace-nowrap px-6 py-3">No</th><th className="whitespace-nowrap px-6 py-3">Kode Guru</th><th className="whitespace-nowrap px-6 py-3">Nama Lengkap</th>
               <th className="whitespace-nowrap px-6 py-3">Email</th><th className="whitespace-nowrap px-6 py-3">NIP</th>
               <th className="whitespace-nowrap px-6 py-3">Bidang Studi</th><th className="whitespace-nowrap px-6 py-3">Kelas Diampu</th>
               <th className="whitespace-nowrap px-6 py-3">Jenis Kelamin</th><th className="whitespace-nowrap px-6 py-3 text-center">Aksi</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
-              {loading ? <tr><td colSpan={8} className="py-8 text-center text-gray-400">Memuat data guru...</td></tr>
-                : filteredTeachers.length === 0 ? <tr><td colSpan={8} className="py-8 text-center text-gray-400">Tidak ada data guru ditemukan.</td></tr>
+              {loading ? <tr><td colSpan={9} className="py-8 text-center text-gray-400">Memuat data guru...</td></tr>
+                : filteredTeachers.length === 0 ? <tr><td colSpan={9} className="py-8 text-center text-gray-400">Tidak ada data guru ditemukan.</td></tr>
                 : filteredTeachers.map((teacher, index) => {
                   const teacherId = idOf(teacher);
                   const teacherClasses = [...new Set((assignmentByTeacher.get(teacherId) || []).map((item) => item.ClassName))];
                   return <tr key={teacherId || index} className="transition hover:bg-gray-50/50">
                     <td className="whitespace-nowrap px-6 py-3.5 font-medium text-gray-400">{index + 1}</td>
-                    <td className="whitespace-nowrap px-6 py-3.5 font-bold text-gray-800">{teacher.user?.Name || teacher.user?.name || teacher.Name || 'Tanpa Nama'}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 font-semibold text-[#1C4D8D]">{teacher.code || teacher.Code || '-'}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 font-bold text-gray-800">{teacher.user?.Name || teacher.user?.name || teacher.Name || 'Tanpa Nama'}{teacher.position && <span className="mt-1 block text-[10px] font-medium text-gray-400">{teacher.position}</span>}</td>
                     <td className="whitespace-nowrap px-6 py-3.5 text-gray-500">{teacher.user?.Email || teacher.user?.email || teacher.Email || '-'}</td>
                     <td className="whitespace-nowrap px-6 py-3.5 text-gray-500">{teacher.nip || teacher.NIP || '-'}</td>
-                    <td className="whitespace-nowrap px-6 py-3.5 font-medium text-[#1C4D8D]">{teacher.subject || teacher.Subject || '-'}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 font-medium text-[#1C4D8D]">{teacher.subject || teacher.Subject || '-'}{Number(teacher.total_hours ?? teacher.TotalHours) > 0 && <span className="mt-1 block text-[10px] font-normal text-gray-400">Jam {teacher.plus_hours ?? teacher.PlusHours ?? 0} Plus · {teacher.regular_hours ?? teacher.RegularHours ?? 0} Reguler · total {teacher.total_hours ?? teacher.TotalHours}</span>}</td>
                     <td className="max-w-xs px-6 py-3.5 text-gray-500">{teacherClasses.length ? teacherClasses.join(', ') : <span className="text-gray-400">Belum ditugaskan</span>}</td>
                     <td className="whitespace-nowrap px-6 py-3.5 text-gray-500">{teacher.gender || teacher.Gender || '-'}</td>
                     <td className="whitespace-nowrap px-6 py-3.5 text-center"><div className="flex items-center justify-center gap-2">

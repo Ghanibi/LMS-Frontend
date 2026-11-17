@@ -24,25 +24,14 @@ export default function DashboardHome() {
         const headers = { Authorization: `Bearer ${token}` };
 
         // Mengambil data secara paralel untuk performa lebih cepat
-        const [teachersRes, studentsRes, subjectsRes] = await Promise.all([
-          axios.get('http://localhost:8080/api/teachers', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:8080/api/students', { headers }).catch(() => ({ data: [] })),
-          axios.get('http://localhost:8080/api/subjects', { headers }).catch(() => ({ data: [] })),
-        ]);
-
-        const getLen = (res: any) => {
-          const d = res.data;
-          if (Array.isArray(d)) return d.length;
-          if (d && Array.isArray(d.data)) return d.data.length;
-          return 0;
-        };
-
+        const response = await axios.get('http://localhost:8080/api/dashboard/stats', { headers });
+        const data = response.data?.data || {};
         setStats({
-          teachers: getLen(teachersRes),
-          students: getLen(studentsRes),
-          subjects: getLen(subjectsRes),
-          assignments: 154, // Bisa disesuaikan dengan endpoint tugas jika sudah ada
-          exams: 48         // Bisa disesuaikan dengan endpoint ujian jika sudah ada
+          teachers: Number(data.teachers || 0),
+          students: Number(data.students || 0),
+          subjects: Number(data.subjects || 0),
+          assignments: Number(data.assignments || 0),
+          exams: Number(data.exams || 0),
         });
         setLoading(false);
       } catch (err) {
